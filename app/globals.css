@@ -1,0 +1,256 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import distinctive fonts */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    /* Mini Olympics Theme - Vibrant & Bold */
+    --background: 220 20% 97%;
+    --foreground: 220 30% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 10%;
+    --primary: 220 90% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 94%;
+    --secondary-foreground: 220 30% 20%;
+    --muted: 220 15% 92%;
+    --muted-foreground: 220 15% 45%;
+    --accent: 45 95% 55%;
+    --accent-foreground: 220 30% 10%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 88%;
+    --input: 220 20% 88%;
+    --ring: 220 90% 56%;
+    --radius: 0.625rem;
+    
+    /* Olympic Medal Colors */
+    --gold: 45 95% 55%;
+    --silver: 220 10% 75%;
+    --bronze: 30 70% 50%;
+    
+    /* Status Colors */
+    --success: 145 65% 42%;
+    --warning: 38 95% 50%;
+    --info: 200 95% 50%;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 220 90% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 30% 18%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 30% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 45 95% 55%;
+    --accent-foreground: 220 30% 10%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 30% 22%;
+    --input: 217 30% 22%;
+    --ring: 220 90% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  /* Olympic Rings Inspired Gradient */
+  .olympic-gradient {
+    background: linear-gradient(
+      135deg,
+      hsl(220, 90%, 56%) 0%,
+      hsl(280, 80%, 55%) 25%,
+      hsl(0, 85%, 55%) 50%,
+      hsl(45, 95%, 55%) 75%,
+      hsl(145, 70%, 45%) 100%
+    );
+  }
+  
+  /* Glassmorphism Card */
+  .glass-card {
+    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl;
+    @apply border border-white/20 dark:border-slate-700/50;
+    @apply shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50;
+  }
+  
+  /* Stat Card Hover Effect */
+  .stat-card {
+    @apply relative overflow-hidden transition-all duration-300;
+    @apply hover:shadow-2xl hover:-translate-y-1;
+  }
+  
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+  }
+  
+  .stat-card:hover::before {
+    @apply opacity-100;
+  }
+  
+  /* Animated Gradient Text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(220, 90%, 56%), hsl(280, 80%, 55%), hsl(45, 95%, 55%));
+    background-size: 200% 200%;
+    animation: gradient-shift 3s ease infinite;
+  }
+  
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  
+  /* Pulse Ring Animation */
+  .pulse-ring {
+    @apply relative;
+  }
+  
+  .pulse-ring::after {
+    content: '';
+    @apply absolute inset-0 rounded-full;
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse-ring {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+  }
+  
+  /* Table Row Hover */
+  .table-row-hover {
+    @apply transition-all duration-200;
+  }
+  
+  .table-row-hover:hover {
+    @apply bg-gradient-to-r from-blue-50/80 to-indigo-50/50 dark:from-slate-800/50 dark:to-slate-700/30;
+    box-shadow: inset 4px 0 0 hsl(220, 90%, 56%);
+  }
+  
+  /* Badge Styles */
+  .badge-gold {
+    @apply bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-900 font-semibold;
+    @apply shadow-md shadow-amber-200/50;
+  }
+  
+  .badge-success {
+    @apply bg-gradient-to-r from-emerald-400 to-green-500 text-white font-semibold;
+    @apply shadow-md shadow-emerald-200/50;
+  }
+  
+  .badge-warning {
+    @apply bg-gradient-to-r from-amber-400 to-orange-500 text-white font-semibold;
+    @apply shadow-md shadow-amber-200/50;
+  }
+  
+  .badge-danger {
+    @apply bg-gradient-to-r from-rose-400 to-red-500 text-white font-semibold;
+    @apply shadow-md shadow-rose-200/50;
+  }
+  
+  /* Button with shine effect */
+  .btn-shine {
+    @apply relative overflow-hidden;
+  }
+  
+  .btn-shine::after {
+    content: '';
+    @apply absolute top-0 -left-full w-1/2 h-full;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+  }
+  
+  .btn-shine:hover::after {
+    left: 100%;
+  }
+  
+  /* Staggered Animation */
+  .stagger-fade-in {
+    @apply opacity-0;
+    animation: fade-in 0.5s ease forwards;
+  }
+  
+  .stagger-fade-in:nth-child(1) { animation-delay: 0.1s; }
+  .stagger-fade-in:nth-child(2) { animation-delay: 0.2s; }
+  .stagger-fade-in:nth-child(3) { animation-delay: 0.3s; }
+  .stagger-fade-in:nth-child(4) { animation-delay: 0.4s; }
+  .stagger-fade-in:nth-child(5) { animation-delay: 0.5s; }
+  
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Floating Animation */
+  .float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100 dark:bg-slate-800 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+    @apply hover:bg-slate-400 dark:hover:bg-slate-500;
+  }
+}
+
+/* Number Counter Animation */
+@property --num {
+  syntax: '<integer>';
+  inherits: false;
+  initial-value: 0;
+}
+
+.counter {
+  transition: --num 1s;
+  counter-reset: num var(--num);
+}
+
+.counter::after {
+  content: counter(num);
+}
