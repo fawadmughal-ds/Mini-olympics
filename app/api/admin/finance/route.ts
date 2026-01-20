@@ -78,7 +78,32 @@ export async function GET(request: NextRequest) {
     });
     summary.balance = summary.totalIncome - summary.totalExpense;
 
-    return NextResponse.json({ success: true, data: records, summary });
+    // Get registration stats
+    const regStats = await sql`
+      SELECT 
+        COUNT(*) as total_registrations,
+        COUNT(CASE WHEN status = 'paid' THEN 1 END) as verified_registrations,
+        COUNT(CASE WHEN status IN ('pending_cash', 'pending_online') THEN 1 END) as pending_registrations,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount - COALESCE(discount, 0) END), 0) as total_collected,
+        COALESCE(SUM(CASE WHEN status IN ('pending_cash', 'pending_online') THEN total_amount - COALESCE(discount, 0) END), 0) as pending_amount
+      FROM registrations
+    `;
+
+    const registrationStats = regStats[0] ? {
+      totalRegistrations: Number(regStats[0].total_registrations) || 0,
+      verifiedRegistrations: Number(regStats[0].verified_registrations) || 0,
+      pendingRegistrations: Number(regStats[0].pending_registrations) || 0,
+      totalCollected: Number(regStats[0].total_collected) || 0,
+      pendingAmount: Number(regStats[0].pending_amount) || 0,
+    } : {
+      totalRegistrations: 0,
+      verifiedRegistrations: 0,
+      pendingRegistrations: 0,
+      totalCollected: 0,
+      pendingAmount: 0,
+    };
+
+    return NextResponse.json({ success: true, data: records, summary, registrationStats });
   } catch (error: any) {
     console.error('Fetch finance records error:', error);
     return NextResponse.json({ error: 'Failed to fetch records', details: error.message }, { status: 500 });

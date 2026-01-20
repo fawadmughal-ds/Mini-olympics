@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
 
 // GET - Get single registration
 export async function GET(
@@ -137,6 +138,40 @@ export async function PATCH(
         { error: 'Registration not found after update' },
         { status: 404 }
       );
+    }
+
+    // If status changed to 'paid' and it wasn't already paid, create a finance record
+    if (status === 'paid' && currentRegistration.status !== 'paid') {
+      try {
+        const financeId = uuidv4();
+        const finalAmount = Number(updated.total_amount) - (Number(updated.discount) || 0);
+        const paymentMethod = updated.payment_method === 'cash' ? 'cash' : 'bank_transfer';
+        
+        // Check if finance record already exists for this registration
+        const existingFinance = await sql`
+          SELECT id FROM finance_records 
+          WHERE reference_id = ${params.id} AND reference_type = 'registration'
+        `;
+        
+        if (!existingFinance || existingFinance.length === 0) {
+          await sql`
+            INSERT INTO finance_records (
+              id, record_type, category, amount, description, 
+              reference_id, reference_type, payment_method, recorded_by, 
+              record_date, created_at, updated_at
+            ) VALUES (
+              ${financeId}, 'income', 'registration', ${finalAmount}, 
+              ${'Registration #' + updated.registration_number + ' - ' + updated.name},
+              ${params.id}, 'registration', ${paymentMethod}, 'system',
+              ${new Date().toISOString().split('T')[0]}, NOW(), NOW()
+            )
+          `;
+          console.log(`Finance record created for registration ${params.id}, amount: ${finalAmount}`);
+        }
+      } catch (financeError: any) {
+        // Log but don't fail the update if finance record creation fails
+        console.error('Failed to create finance record:', financeError.message);
+      }
     }
 
     // Log the update for audit purposes

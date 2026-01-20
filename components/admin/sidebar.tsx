@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Menu,
   X,
+  Trophy,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -50,6 +52,12 @@ export default function AdminSidebar({ userRole, username, onLogout }: AdminSide
       roles: ['super_admin', 'admin', 'finance_admin', 'inventory_admin'],
     },
     {
+      label: 'Registrations',
+      href: '/admin/registrations',
+      icon: <Users className="h-5 w-5" />,
+      roles: ['super_admin', 'admin'],
+    },
+    {
       label: 'Inventory',
       href: '/admin/inventory',
       icon: <Package className="h-5 w-5" />,
@@ -64,8 +72,20 @@ export default function AdminSidebar({ userRole, username, onLogout }: AdminSide
     {
       label: 'Sport Groups',
       href: '/admin/super',
-      icon: <Users className="h-5 w-5" />,
+      icon: <Shield className="h-5 w-5" />,
       roles: ['super_admin', 'admin'],
+    },
+    {
+      label: 'HOC Scheduling',
+      href: '/admin/hoc',
+      icon: <Trophy className="h-5 w-5" />,
+      roles: ['super_admin', 'admin'],
+    },
+    {
+      label: 'Settings',
+      href: '/admin/settings',
+      icon: <Settings className="h-5 w-5" />,
+      roles: ['super_admin'],
     },
   ];
 

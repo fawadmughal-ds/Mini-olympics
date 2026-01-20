@@ -88,27 +88,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
-    const currentQty = (item as any[])[0].quantity;
-    if (currentQty < loanQty) {
-      return NextResponse.json({ error: `Insufficient stock. Available: ${currentQty}` }, { status: 400 });
+    const totalQty = (item as any[])[0].quantity;
+    
+    // Get current loaned quantity
+    const loanedResult = await sql`SELECT COALESCE(SUM(quantity), 0) as loaned FROM inventory_loans WHERE item_id = ${itemId} AND status = 'active'`;
+    const currentLoaned = Number((loanedResult as any[])[0]?.loaned) || 0;
+    const availableQty = totalQty - currentLoaned;
+    
+    if (availableQty < loanQty) {
+      return NextResponse.json({ error: `Insufficient stock. Available: ${availableQty}` }, { status: 400 });
     }
 
     const id = uuidv4();
 
-    // Create loan record
+    // Create loan record (don't reduce inventory quantity - just track the loan)
     await sql`
       INSERT INTO inventory_loans (id, item_id, borrower_name, borrower_roll, borrower_phone, quantity, expected_return_date, notes, loaned_by, created_at, updated_at)
       VALUES (${id}, ${itemId}, ${borrowerName}, ${borrowerRoll || null}, ${borrowerPhone}, ${loanQty}, ${expectedReturnDate || null}, ${notes || null}, ${session.username}, NOW(), NOW())
     `;
 
-    // Update item quantity
-    const newQty = currentQty - loanQty;
-    await sql`UPDATE inventory_items SET quantity = ${newQty}, updated_at = NOW() WHERE id = ${itemId}`;
-
-    // Log movement
+    // Log movement (for tracking purposes only)
     await sql`
       INSERT INTO inventory_movements (id, item_id, movement_type, quantity, previous_quantity, new_quantity, reason, performed_by, created_at)
-      VALUES (${uuidv4()}, ${itemId}, 'loan', ${loanQty}, ${currentQty}, ${newQty}, ${'Loaned to ' + borrowerName}, ${session.username}, NOW())
+      VALUES (${uuidv4()}, ${itemId}, 'loan', ${loanQty}, ${availableQty}, ${availableQty - loanQty}, ${'Loaned to ' + borrowerName}, ${session.username}, NOW())
     `;
 
     return NextResponse.json({ success: true, id });
@@ -163,18 +165,12 @@ export async function PUT(request: NextRequest) {
       WHERE id = ${id}
     `;
 
-    // If returned, add quantity back to item
+    // If returned, just log the movement (quantity tracking is automatic via loan status)
     if (newStatus === 'returned') {
-      const item = await sql`SELECT quantity FROM inventory_items WHERE id = ${loanData.item_id}`;
-      const currentQty = (item as any[])[0]?.quantity || 0;
-      const newQty = currentQty + loanData.quantity;
-
-      await sql`UPDATE inventory_items SET quantity = ${newQty}, updated_at = NOW() WHERE id = ${loanData.item_id}`;
-
-      // Log movement
+      // Log movement for tracking
       await sql`
         INSERT INTO inventory_movements (id, item_id, movement_type, quantity, previous_quantity, new_quantity, reason, performed_by, created_at)
-        VALUES (${uuidv4()}, ${loanData.item_id}, 'return', ${loanData.quantity}, ${currentQty}, ${newQty}, ${'Returned by ' + loanData.borrower_name}, ${session.username}, NOW())
+        VALUES (${uuidv4()}, ${loanData.item_id}, 'return', ${loanData.quantity}, 0, 0, ${'Returned by ' + loanData.borrower_name}, ${session.username}, NOW())
       `;
     }
 

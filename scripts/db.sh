@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   contact_number VARCHAR(20) NOT NULL,
   alternative_contact_number VARCHAR(20),
   gender VARCHAR(10) NOT NULL CHECK (gender IN ('boys', 'girls')),
+  team_name VARCHAR(100),
   selected_games TEXT NOT NULL,
   team_members TEXT,
   total_amount DECIMAL(10, 2) NOT NULL,
@@ -310,10 +311,29 @@ BEGIN
   END IF;
 END $$;
 
+-- System settings table for API keys etc.
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
+-- Match schedules table for HOC
+CREATE TABLE IF NOT EXISTS match_schedules (
+  id TEXT PRIMARY KEY,
+  game_name TEXT NOT NULL,
+  gender TEXT NOT NULL CHECK (gender IN ('boys', 'girls')),
+  schedule_data TEXT,
+  generated_by TEXT,
+  created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+);
+
 -- registrations table columns (safe adds)
 ALTER TABLE registrations ADD COLUMN IF NOT EXISTS registration_number INTEGER UNIQUE DEFAULT nextval('registration_number_seq');
 ALTER TABLE registrations ADD COLUMN IF NOT EXISTS alternative_contact_number VARCHAR(20);
 ALTER TABLE registrations ADD COLUMN IF NOT EXISTS gender VARCHAR(10) CHECK (gender IN ('boys', 'girls'));
+ALTER TABLE registrations ADD COLUMN IF NOT EXISTS team_name VARCHAR(100);
 ALTER TABLE registrations ADD COLUMN IF NOT EXISTS selected_games TEXT;
 ALTER TABLE registrations ADD COLUMN IF NOT EXISTS team_members TEXT;
 ALTER TABLE registrations ADD COLUMN IF NOT EXISTS total_amount DECIMAL(10, 2);

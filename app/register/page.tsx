@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CheckCircle2, Circle, DollarSign, X, Copy } from 'lucide-react';
+import { CheckCircle2, Circle, DollarSign, X, Copy, ExternalLink, Users, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { gamesPricing, getAvailableGames, calculateTotal, isTeamGame, getRequiredPlayers } from '@/lib/games-pricing';
 
@@ -30,6 +30,7 @@ type FormData = {
   contactNumber: string;
   alternativeContactNumber: string;
   gender: 'boys' | 'girls' | '';
+  teamName: string;
   selectedGames: string[];
   teamMembers: Record<string, TeamMember[]>; // gameName -> array of team members
   paymentMethod: 'cash' | 'online' | '';
@@ -49,6 +50,7 @@ export default function RegisterPage() {
     contactNumber: '',
     alternativeContactNumber: '',
     gender: '',
+    teamName: '',
     selectedGames: [],
     teamMembers: {},
     paymentMethod: '',
@@ -56,14 +58,48 @@ export default function RegisterPage() {
     screenshotUrl: '',
   });
   const [availableGames, setAvailableGames] = useState(gamesPricing);
+  const [sportGroups, setSportGroups] = useState<any[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
 
   useEffect(() => {
     if (formData.gender) {
       setAvailableGames(getAvailableGames(formData.gender));
       // Clear selected games and team members when gender changes
       setFormData((prev) => ({ ...prev, selectedGames: [], teamMembers: {} }));
+      setSportGroups([]);
     }
   }, [formData.gender]);
+
+  // Fetch sport groups for selected games
+  useEffect(() => {
+    const fetchGroups = async () => {
+      if (!formData.gender || formData.selectedGames.length === 0) {
+        setSportGroups([]);
+        return;
+      }
+      setGroupsLoading(true);
+      try {
+        const params = new URLSearchParams({
+          games: formData.selectedGames.join(','),
+          regNum: '',
+          name: formData.name || '',
+          roll: formData.rollNumber || '',
+          phone: formData.contactNumber || '',
+          gender: formData.gender,
+        });
+        const res = await fetch(`/api/groups?${params.toString()}`, { cache: 'no-store' });
+        const data = await res.json();
+        if (data.success) {
+          setSportGroups(data.data || []);
+        }
+      } catch (e) {
+        console.error('Failed to load groups:', e);
+      } finally {
+        setGroupsLoading(false);
+      }
+    };
+    fetchGroups();
+  }, [formData.selectedGames, formData.gender, formData.name, formData.rollNumber, formData.contactNumber]);
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -150,6 +186,7 @@ export default function RegisterPage() {
           contactNumber: formData.contactNumber,
           alternativeContactNumber: formData.alternativeContactNumber,
           gender: formData.gender,
+          teamName: formData.teamName,
           selectedGames: formData.selectedGames,
           teamMembers: formData.teamMembers,
           paymentMethod: formData.paymentMethod,
@@ -192,7 +229,8 @@ export default function RegisterPage() {
         formData.name &&
         formData.rollNumber &&
         formData.contactNumber &&
-        formData.gender
+        formData.gender &&
+        formData.teamName
       );
     }
     if (step === 2) {
@@ -291,6 +329,16 @@ export default function RegisterPage() {
                       <SelectItem value="girls">Girls</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label htmlFor="teamName">Team Name *</Label>
+                  <Input
+                    id="teamName"
+                    value={formData.teamName}
+                    onChange={(e) => handleInputChange('teamName', e.target.value)}
+                    placeholder="Enter your team name (e.g., Thunder Hawks)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Choose a unique name for your team</p>
                 </div>
                 <div>
                   <Label htmlFor="contactNumber">Contact Number *</Label>
@@ -401,7 +449,7 @@ export default function RegisterPage() {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                   <div>
-                                    <Label className="text-xs sm:text-sm">Name *</Label>
+                                    <Label className="text-xs sm:text-sm">Name</Label>
                                     <Input
                                       value={member.name}
                                       onChange={(e) => handleTeamMemberChange(gameName, index, 'name', e.target.value)}
@@ -410,7 +458,7 @@ export default function RegisterPage() {
                                     />
                                   </div>
                                   <div>
-                                    <Label className="text-xs sm:text-sm">Roll Number *</Label>
+                                    <Label className="text-xs sm:text-sm">Roll Number</Label>
                                     <Input
                                       value={member.rollNumber}
                                       onChange={(e) => handleTeamMemberChange(gameName, index, 'rollNumber', e.target.value)}
@@ -419,7 +467,7 @@ export default function RegisterPage() {
                                     />
                                   </div>
                                   <div>
-                                    <Label className="text-xs sm:text-sm">Contact Number *</Label>
+                                    <Label className="text-xs sm:text-sm">Contact Number</Label>
                                     <Input
                                       value={member.contactNumber}
                                       onChange={(e) => handleTeamMemberChange(gameName, index, 'contactNumber', e.target.value)}
@@ -449,6 +497,51 @@ export default function RegisterPage() {
                         <div className="mt-2 text-xs sm:text-sm text-gray-600">
                           {formData.selectedGames.length} game(s) selected
                         </div>
+                      </div>
+                    )}
+
+                    {/* Sport Groups Preview */}
+                    {formData.selectedGames.length > 0 && (
+                      <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-lg">
+                        <h4 className="font-semibold text-base sm:text-lg mb-3 flex items-center gap-2 text-purple-900">
+                          <Users className="h-5 w-5 text-purple-600" />
+                          WhatsApp Groups (Join After Payment)
+                        </h4>
+                        <p className="text-xs sm:text-sm text-purple-700 mb-4">
+                          After registration, you&apos;ll need to join these WhatsApp groups for updates:
+                        </p>
+                        {groupsLoading ? (
+                          <div className="text-center py-4 text-slate-500">Loading groups...</div>
+                        ) : sportGroups.length > 0 ? (
+                          <div className="space-y-3">
+                            {sportGroups.map((g, idx) => (
+                              <div key={idx} className="bg-white p-3 rounded-lg border border-purple-100 flex items-center justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm sm:text-base text-slate-800 truncate">
+                                    {g.groupTitle || g.gameName}
+                                  </p>
+                                  <p className="text-xs text-slate-500">{g.gameName}</p>
+                                </div>
+                                {g.groupUrl ? (
+                                  <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full flex-shrink-0">
+                                    Group Available
+                                  </span>
+                                ) : (
+                                  <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full flex-shrink-0">
+                                    Coming Soon
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 text-slate-500 text-sm">
+                            No groups configured for selected games yet.
+                          </div>
+                        )}
+                        <p className="text-xs text-purple-600 mt-4 italic">
+                          * You will get direct group links after completing your registration
+                        </p>
                       </div>
                     )}
                   </>

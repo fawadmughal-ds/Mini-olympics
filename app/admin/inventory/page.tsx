@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -21,25 +21,32 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   Package,
   Plus,
   Pencil,
   Trash2,
-  ArrowUpCircle,
-  ArrowDownCircle,
   UserCheck,
   RotateCcw,
   AlertTriangle,
   Search,
   Loader2,
   Check,
-  X,
-  Phone,
-  User,
-  Calendar,
   Boxes,
-  TrendingDown,
   TrendingUp,
+  CheckCircle,
+  XCircle,
+  ArrowRightLeft,
+  Save,
+  X,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 type InventoryItem = {
@@ -74,6 +81,17 @@ type Loan = {
   loaned_by: string;
 };
 
+type NewItemRow = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  minQuantity: number;
+  location: string;
+};
+
 const CATEGORIES = [
   { value: 'sports', label: 'Sports Equipment' },
   { value: 'electronics', label: 'Electronics' },
@@ -82,28 +100,43 @@ const CATEGORIES = [
   { value: 'general', label: 'General' },
 ];
 
+const createEmptyRow = (): NewItemRow => ({
+  id: Math.random().toString(36).substr(2, 9),
+  name: '',
+  description: '',
+  category: 'sports',
+  quantity: 1,
+  unit: 'pcs',
+  minQuantity: 1,
+  location: '',
+});
+
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'items' | 'loans'>('items');
+  const [activeTab, setActiveTab] = useState<'items' | 'add' | 'loans'>('items');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
+  // Sheet view for adding items
+  const [newItems, setNewItems] = useState<NewItemRow[]>([createEmptyRow(), createEmptyRow(), createEmptyRow()]);
+  const [savingItems, setSavingItems] = useState(false);
+
   // Dialog states
-  const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [loanDialogOpen, setLoanDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Form states
-  const [itemForm, setItemForm] = useState({
+  // Edit form state
+  const [editForm, setEditForm] = useState({
     name: '',
     description: '',
-    category: 'general',
-    quantity: 0,
+    category: 'sports',
+    quantity: 1,
     unit: 'pcs',
-    minQuantity: 0,
+    minQuantity: 1,
     location: '',
   });
 
@@ -113,7 +146,6 @@ export default function InventoryPage() {
     borrowerRoll: '',
     borrowerPhone: '',
     quantity: 1,
-    expectedReturnDate: '',
     notes: '',
   });
 
@@ -141,23 +173,76 @@ export default function InventoryPage() {
     }
   };
 
-  const openCreateItemDialog = () => {
-    setEditingItem(null);
-    setItemForm({
-      name: '',
-      description: '',
-      category: 'general',
-      quantity: 0,
-      unit: 'pcs',
-      minQuantity: 0,
-      location: '',
+  // Sheet row handlers
+  const updateNewItem = (index: number, field: keyof NewItemRow, value: string | number) => {
+    setNewItems(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
     });
-    setItemDialogOpen(true);
   };
 
-  const openEditItemDialog = (item: InventoryItem) => {
+  const addMoreRows = () => {
+    setNewItems(prev => [...prev, createEmptyRow(), createEmptyRow(), createEmptyRow()]);
+  };
+
+  const removeRow = (index: number) => {
+    if (newItems.length <= 1) return;
+    setNewItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveAllItems = async () => {
+    const validItems = newItems.filter(item => item.name.trim() !== '');
+    if (validItems.length === 0) {
+      alert('Please add at least one item with a name');
+      return;
+    }
+
+    setSavingItems(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const item of validItems) {
+      try {
+        const res = await fetch('/api/admin/inventory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: item.name,
+            description: item.description || null,
+            category: item.category,
+            quantity: Number(item.quantity),
+            unit: item.unit,
+            minQuantity: Number(item.minQuantity),
+            location: item.location || null,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (e) {
+        errorCount++;
+      }
+    }
+
+    setSavingItems(false);
+    
+    if (successCount > 0) {
+      alert(`Added ${successCount} item(s) successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`);
+      setNewItems([createEmptyRow(), createEmptyRow(), createEmptyRow()]);
+      setActiveTab('items');
+      loadData();
+    } else {
+      alert('Failed to add items');
+    }
+  };
+
+  const openEditDialog = (item: InventoryItem) => {
     setEditingItem(item);
-    setItemForm({
+    setEditForm({
       name: item.name,
       description: item.description || '',
       category: item.category,
@@ -166,38 +251,35 @@ export default function InventoryPage() {
       minQuantity: item.min_quantity,
       location: item.location || '',
     });
-    setItemDialogOpen(true);
+    setEditDialogOpen(true);
   };
 
-  const handleSaveItem = async () => {
-    if (!itemForm.name) {
+  const handleUpdateItem = async () => {
+    if (!editingItem || !editForm.name) {
       alert('Name is required');
       return;
     }
 
     setSaving(true);
     try {
-      const method = editingItem ? 'PUT' : 'POST';
-      const body = {
-        ...(editingItem && { id: editingItem.id }),
-        name: itemForm.name,
-        description: itemForm.description || null,
-        category: itemForm.category,
-        quantity: Number(itemForm.quantity),
-        unit: itemForm.unit,
-        minQuantity: Number(itemForm.minQuantity),
-        location: itemForm.location || null,
-      };
-
       const res = await fetch('/api/admin/inventory', {
-        method,
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          id: editingItem.id,
+          name: editForm.name,
+          description: editForm.description || null,
+          category: editForm.category,
+          quantity: Number(editForm.quantity),
+          unit: editForm.unit,
+          minQuantity: Number(editForm.minQuantity),
+          location: editForm.location || null,
+        }),
       });
 
       const data = await res.json();
       if (data.success) {
-        setItemDialogOpen(false);
+        setEditDialogOpen(false);
         loadData();
       } else {
         alert('Failed: ' + (data.error || 'Unknown error'));
@@ -230,7 +312,6 @@ export default function InventoryPage() {
       borrowerRoll: '',
       borrowerPhone: '',
       quantity: 1,
-      expectedReturnDate: '',
       notes: '',
     });
     setLoanDialogOpen(true);
@@ -239,6 +320,14 @@ export default function InventoryPage() {
   const handleCreateLoan = async () => {
     if (!loanForm.itemId || !loanForm.borrowerName || !loanForm.borrowerPhone) {
       alert('Item, borrower name, and phone are required');
+      return;
+    }
+
+    const selectedItem = items.find(i => i.id === loanForm.itemId);
+    const available = selectedItem ? selectedItem.quantity - selectedItem.loanedQty : 0;
+    
+    if (loanForm.quantity > available) {
+      alert(`Only ${available} available for loan`);
       return;
     }
 
@@ -263,7 +352,7 @@ export default function InventoryPage() {
   };
 
   const handleReturnLoan = async (loan: Loan) => {
-    if (!confirm(`Mark loan returned from ${loan.borrower_name}?`)) return;
+    if (!confirm(`Mark "${loan.item_name}" returned from ${loan.borrower_name}?`)) return;
 
     try {
       const res = await fetch('/api/admin/inventory/loans', {
@@ -293,9 +382,14 @@ export default function InventoryPage() {
 
   // Stats
   const totalItems = items.length;
-  const lowStockItems = items.filter((i) => i.quantity <= i.min_quantity).length;
-  const activeLoansCount = loans.length;
-  const totalValue = items.reduce((sum, i) => sum + i.quantity, 0);
+  const totalStock = items.reduce((sum, i) => sum + i.quantity, 0);
+  const totalLoaned = items.reduce((sum, i) => sum + i.loanedQty, 0);
+  const totalAvailable = totalStock - totalLoaned;
+  const lowStockItems = items.filter((i) => (i.quantity - i.loanedQty) <= i.min_quantity).length;
+
+  const getCategoryLabel = (cat: string) => {
+    return CATEGORIES.find(c => c.value === cat)?.label || cat;
+  };
 
   if (loading) {
     return (
@@ -306,287 +400,509 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 pt-16 lg:pt-8">
+    <div className="p-4 lg:p-6 pt-16 lg:pt-6 bg-slate-50 min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
           <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg">
-            <Package className="h-6 w-6 text-white" />
+            <Package className="h-5 w-5 text-white" />
           </div>
           Inventory Management
         </h1>
-        <p className="text-slate-500 mt-1">Track equipment, supplies, and loans</p>
+        <p className="text-slate-500 text-sm mt-1">Track equipment and manage loans</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm">Total Items</p>
-                <p className="text-3xl font-bold">{totalItems}</p>
-              </div>
-              <Boxes className="h-10 w-10 text-blue-200/50" />
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <Card className="border-0 shadow-sm bg-blue-500 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Boxes className="h-4 w-4 opacity-80" />
+              <span className="text-xs opacity-80">Items</span>
             </div>
+            <p className="text-xl font-bold mt-1">{totalItems}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-emerald-100 text-sm">Total Stock</p>
-                <p className="text-3xl font-bold">{totalValue}</p>
-              </div>
-              <TrendingUp className="h-10 w-10 text-emerald-200/50" />
+        <Card className="border-0 shadow-sm bg-emerald-500 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 opacity-80" />
+              <span className="text-xs opacity-80">Total Stock</span>
             </div>
+            <p className="text-xl font-bold mt-1">{totalStock}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-amber-100 text-sm">Active Loans</p>
-                <p className="text-3xl font-bold">{activeLoansCount}</p>
-              </div>
-              <UserCheck className="h-10 w-10 text-amber-200/50" />
+        <Card className="border-0 shadow-sm bg-teal-500 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 opacity-80" />
+              <span className="text-xs opacity-80">Available</span>
             </div>
+            <p className="text-xl font-bold mt-1">{totalAvailable}</p>
           </CardContent>
         </Card>
 
-        <Card className={`border-0 shadow-lg ${lowStockItems > 0 ? 'bg-gradient-to-br from-rose-500 to-red-600' : 'bg-gradient-to-br from-slate-500 to-slate-600'} text-white`}>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-rose-100 text-sm">Low Stock</p>
-                <p className="text-3xl font-bold">{lowStockItems}</p>
-              </div>
-              <AlertTriangle className="h-10 w-10 text-rose-200/50" />
+        <Card className="border-0 shadow-sm bg-amber-500 text-white">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <ArrowRightLeft className="h-4 w-4 opacity-80" />
+              <span className="text-xs opacity-80">On Loan</span>
             </div>
+            <p className="text-xl font-bold mt-1">{totalLoaned}</p>
+          </CardContent>
+        </Card>
+
+        <Card className={`border-0 shadow-sm ${lowStockItems > 0 ? 'bg-rose-500' : 'bg-slate-500'} text-white`}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 opacity-80" />
+              <span className="text-xs opacity-80">Low Stock</span>
+            </div>
+            <p className="text-xl font-bold mt-1">{lowStockItems}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        <Button
-          onClick={() => setActiveTab('items')}
-          variant={activeTab === 'items' ? 'default' : 'outline'}
-          className={activeTab === 'items' ? 'bg-amber-500 hover:bg-amber-600' : ''}
-        >
-          <Package className="h-4 w-4 mr-2" />
-          Items ({items.length})
-        </Button>
-        <Button
-          onClick={() => setActiveTab('loans')}
-          variant={activeTab === 'loans' ? 'default' : 'outline'}
-          className={activeTab === 'loans' ? 'bg-amber-500 hover:bg-amber-600' : ''}
-        >
-          <UserCheck className="h-4 w-4 mr-2" />
-          Active Loans ({loans.length})
-        </Button>
+      <div className="flex flex-col lg:flex-row gap-3 mb-4">
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={() => setActiveTab('items')}
+            variant={activeTab === 'items' ? 'default' : 'outline'}
+            className={activeTab === 'items' ? 'bg-amber-500 hover:bg-amber-600' : ''}
+          >
+            <Package className="h-4 w-4 mr-1" />
+            Items ({items.length})
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setActiveTab('add')}
+            variant={activeTab === 'add' ? 'default' : 'outline'}
+            className={activeTab === 'add' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-1" />
+            Add Items
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setActiveTab('loans')}
+            variant={activeTab === 'loans' ? 'default' : 'outline'}
+            className={activeTab === 'loans' ? 'bg-amber-500 hover:bg-amber-600' : ''}
+          >
+            <UserCheck className="h-4 w-4 mr-1" />
+            Active Loans ({loans.length})
+          </Button>
+        </div>
+        
+        {activeTab === 'items' && (
+          <div className="flex flex-1 gap-2 lg:justify-end">
+            <div className="relative flex-1 lg:max-w-xs">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-9 text-sm"
+              />
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-36 h-9 text-sm">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        {activeTab === 'loans' && (
+          <div className="flex flex-1 lg:justify-end">
+            <Button size="sm" onClick={() => openLoanDialog()} className="bg-amber-500 hover:bg-amber-600">
+              <Plus className="h-4 w-4 mr-1" />
+              New Loan
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Items Tab */}
       {activeTab === 'items' && (
-        <>
-          {/* Search and Actions */}
-          <Card className="mb-6 border-0 shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex flex-col lg:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <Input
-                    placeholder="Search items..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full lg:w-48">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {CATEGORIES.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button onClick={openCreateItemDialog} className="bg-amber-500 hover:bg-amber-600">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Item
-                </Button>
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-800 hover:bg-slate-800">
+                  <TableHead className="text-white font-semibold w-12">S#</TableHead>
+                  <TableHead className="text-white font-semibold">Item Name</TableHead>
+                  <TableHead className="text-white font-semibold">Category</TableHead>
+                  <TableHead className="text-white font-semibold text-center">Total</TableHead>
+                  <TableHead className="text-white font-semibold text-center">Available</TableHead>
+                  <TableHead className="text-white font-semibold text-center">On Loan</TableHead>
+                  <TableHead className="text-white font-semibold">Location</TableHead>
+                  <TableHead className="text-white font-semibold">Status</TableHead>
+                  <TableHead className="text-white font-semibold text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-12 text-slate-400">
+                      <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                      No items found. Go to "Add Items" tab to add inventory.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredItems.map((item, index) => {
+                    const available = item.quantity - item.loanedQty;
+                    const isLowStock = available <= item.min_quantity;
+                    
+                    return (
+                      <TableRow key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                        <TableCell className="font-medium text-slate-500">{index + 1}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-slate-800">{item.name}</p>
+                            {item.description && (
+                              <p className="text-xs text-slate-400 truncate max-w-xs">{item.description}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="px-2 py-0.5 bg-slate-100 rounded text-xs text-slate-600">
+                            {getCategoryLabel(item.category)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center font-semibold text-slate-700">
+                          {item.quantity} <span className="text-xs text-slate-400 font-normal">{item.unit}</span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`font-semibold ${available > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {available}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`font-semibold ${item.loanedQty > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                            {item.loanedQty}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-500">
+                          {item.location || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {isLowStock ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-100 text-rose-700 rounded text-xs font-medium">
+                              <AlertTriangle className="h-3 w-3" />
+                              Low Stock
+                            </span>
+                          ) : available === 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+                              <XCircle className="h-3 w-3" />
+                              All Loaned
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">
+                              <CheckCircle className="h-3 w-3" />
+                              Available
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              onClick={() => openLoanDialog(item)} 
+                              className="h-7 px-2 text-amber-600"
+                              disabled={available === 0}
+                            >
+                              <UserCheck className="h-3 w-3 mr-1" />
+                              Loan
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => openEditDialog(item)} className="h-7 w-7 p-0">
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleDeleteItem(item)} className="h-7 w-7 p-0 text-red-500">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {/* Table Footer */}
+          {filteredItems.length > 0 && (
+            <div className="bg-slate-100 px-4 py-3 flex flex-wrap gap-4 justify-between items-center border-t">
+              <div className="text-sm text-slate-600">
+                Showing <span className="font-semibold">{filteredItems.length}</span> items
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Items Grid */}
-          {filteredItems.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="py-16 text-center">
-                <Package className="h-12 w-12 mx-auto text-slate-300 mb-4" />
-                <p className="text-slate-500">No items found</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredItems.map((item) => (
-                <Card key={item.id} className={`border-0 shadow-lg overflow-hidden ${item.quantity <= item.min_quantity ? 'ring-2 ring-rose-400' : ''}`}>
-                  <div className={`h-1 ${item.quantity <= item.min_quantity ? 'bg-rose-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'}`}></div>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{item.name}</CardTitle>
-                        <CardDescription className="capitalize">{item.category}</CardDescription>
-                      </div>
-                      <span className={`text-2xl font-bold ${item.quantity <= item.min_quantity ? 'text-rose-500' : 'text-emerald-600'}`}>
-                        {item.quantity}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {item.description && (
-                      <p className="text-sm text-slate-500 line-clamp-2">{item.description}</p>
-                    )}
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="px-2 py-1 bg-slate-100 rounded">{item.unit}</span>
-                      {item.location && <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded">{item.location}</span>}
-                      {item.loanedQty > 0 && (
-                        <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded">
-                          {item.loanedQty} on loan
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2 pt-2 border-t">
-                      <Button size="sm" variant="outline" onClick={() => openEditItemDialog(item)} className="flex-1">
-                        <Pencil className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => openLoanDialog(item)} className="flex-1 text-amber-600 border-amber-200 hover:bg-amber-50">
-                        <UserCheck className="h-4 w-4 mr-1" />
-                        Loan
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDeleteItem(item)} className="text-red-600 border-red-200 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              <div className="flex gap-6 text-sm">
+                <div>
+                  <span className="text-slate-500">Total:</span>{' '}
+                  <span className="font-semibold">{totalStock}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Available:</span>{' '}
+                  <span className="font-semibold text-emerald-600">{totalAvailable}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">On Loan:</span>{' '}
+                  <span className="font-semibold text-amber-600">{totalLoaned}</span>
+                </div>
+              </div>
             </div>
           )}
-        </>
+        </Card>
+      )}
+
+      {/* Add Items Tab - Spreadsheet View */}
+      {activeTab === 'add' && (
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-3">
+            <h2 className="text-white font-semibold flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              Add Multiple Items
+            </h2>
+            <p className="text-emerald-100 text-sm">Fill in the rows below and click Save All to add items</p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-100">
+                  <TableHead className="w-12 font-semibold">#</TableHead>
+                  <TableHead className="font-semibold min-w-[180px]">Item Name *</TableHead>
+                  <TableHead className="font-semibold min-w-[150px]">Description</TableHead>
+                  <TableHead className="font-semibold min-w-[140px]">Category</TableHead>
+                  <TableHead className="font-semibold w-20 text-center">Qty</TableHead>
+                  <TableHead className="font-semibold w-20 text-center">Unit</TableHead>
+                  <TableHead className="font-semibold w-20 text-center">Min Qty</TableHead>
+                  <TableHead className="font-semibold min-w-[120px]">Location</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {newItems.map((item, index) => (
+                  <TableRow key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                    <TableCell className="font-medium text-slate-400">{index + 1}</TableCell>
+                    <TableCell>
+                      <Input
+                        value={item.name}
+                        onChange={(e) => updateNewItem(index, 'name', e.target.value)}
+                        placeholder="e.g., Football"
+                        className="h-8 text-sm border-slate-200 focus:border-emerald-500"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={item.description}
+                        onChange={(e) => updateNewItem(index, 'description', e.target.value)}
+                        placeholder="Optional"
+                        className="h-8 text-sm border-slate-200"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select value={item.category} onValueChange={(v) => updateNewItem(index, 'category', v)}>
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CATEGORIES.map((c) => (
+                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={item.quantity}
+                        onChange={(e) => updateNewItem(index, 'quantity', Number(e.target.value))}
+                        className="h-8 text-sm text-center border-slate-200"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={item.unit}
+                        onChange={(e) => updateNewItem(index, 'unit', e.target.value)}
+                        placeholder="pcs"
+                        className="h-8 text-sm text-center border-slate-200"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={item.minQuantity}
+                        onChange={(e) => updateNewItem(index, 'minQuantity', Number(e.target.value))}
+                        className="h-8 text-sm text-center border-slate-200"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={item.location}
+                        onChange={(e) => updateNewItem(index, 'location', e.target.value)}
+                        placeholder="Store Room"
+                        className="h-8 text-sm border-slate-200"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => removeRow(index)} 
+                        className="h-7 w-7 p-0 text-slate-400 hover:text-red-500"
+                        disabled={newItems.length <= 1}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {/* Footer Actions */}
+          <div className="bg-slate-50 px-4 py-4 flex flex-wrap gap-3 justify-between items-center border-t">
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={addMoreRows}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add More Rows
+              </Button>
+              <span className="text-sm text-slate-500 self-center">
+                {newItems.filter(i => i.name.trim()).length} item(s) to save
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setNewItems([createEmptyRow(), createEmptyRow(), createEmptyRow()])}
+              >
+                Clear All
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={handleSaveAllItems} 
+                disabled={savingItems || newItems.every(i => !i.name.trim())}
+                className="bg-emerald-500 hover:bg-emerald-600"
+              >
+                {savingItems ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                Save All Items
+              </Button>
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* Loans Tab */}
       {activeTab === 'loans' && (
-        <>
-          <Card className="mb-6 border-0 shadow-lg">
-            <CardContent className="p-4 flex justify-between items-center">
-              <p className="text-slate-600">{loans.length} active loan(s)</p>
-              <Button onClick={() => openLoanDialog()} className="bg-amber-500 hover:bg-amber-600">
-                <Plus className="h-4 w-4 mr-2" />
-                New Loan
-              </Button>
-            </CardContent>
-          </Card>
-
-          {loans.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="py-16 text-center">
-                <UserCheck className="h-12 w-12 mx-auto text-slate-300 mb-4" />
-                <p className="text-slate-500">No active loans</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {loans.map((loan) => (
-                <Card key={loan.id} className="border-0 shadow-lg">
-                  <CardContent className="p-5">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="p-2 bg-amber-100 rounded-lg">
-                            <Package className="h-5 w-5 text-amber-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-slate-800">{loan.item_name}</h3>
-                            <p className="text-sm text-slate-500">Qty: {loan.quantity} • {loan.item_category}</p>
-                          </div>
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-800 hover:bg-slate-800">
+                  <TableHead className="text-white font-semibold w-12">S#</TableHead>
+                  <TableHead className="text-white font-semibold">Item</TableHead>
+                  <TableHead className="text-white font-semibold text-center">Qty</TableHead>
+                  <TableHead className="text-white font-semibold">Borrower</TableHead>
+                  <TableHead className="text-white font-semibold">Phone</TableHead>
+                  <TableHead className="text-white font-semibold">Roll#</TableHead>
+                  <TableHead className="text-white font-semibold">Date</TableHead>
+                  <TableHead className="text-white font-semibold">Notes</TableHead>
+                  <TableHead className="text-white font-semibold text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loans.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-12 text-slate-400">
+                      <UserCheck className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                      No active loans
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  loans.map((loan, index) => (
+                    <TableRow key={loan.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                      <TableCell className="font-medium text-slate-500">{index + 1}</TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-slate-800">{loan.item_name}</p>
+                          <p className="text-xs text-slate-400">{getCategoryLabel(loan.item_category)}</p>
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-slate-400" />
-                            <span>{loan.borrower_name}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-slate-400" />
-                            <span>{loan.borrower_phone}</span>
-                          </div>
-                          {loan.borrower_roll && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-400">Roll:</span>
-                              <span>{loan.borrower_roll}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-slate-400" />
-                            <span>{new Date(loan.loan_date).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <Button onClick={() => handleReturnLoan(loan)} className="bg-emerald-500 hover:bg-emerald-600">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Mark Returned
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </>
+                      </TableCell>
+                      <TableCell className="text-center font-semibold text-amber-600">{loan.quantity}</TableCell>
+                      <TableCell className="font-medium">{loan.borrower_name}</TableCell>
+                      <TableCell className="text-sm">{loan.borrower_phone}</TableCell>
+                      <TableCell className="text-sm text-slate-500">{loan.borrower_roll || '-'}</TableCell>
+                      <TableCell className="text-sm">{new Date(loan.loan_date).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-sm text-slate-500 max-w-xs truncate">{loan.notes || '-'}</TableCell>
+                      <TableCell>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleReturnLoan(loan)} 
+                          className="bg-emerald-500 hover:bg-emerald-600 h-7 px-2"
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Return
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
       )}
 
-      {/* Item Dialog */}
-      <Dialog open={itemDialogOpen} onOpenChange={setItemDialogOpen}>
-        <DialogContent className="max-w-lg">
+      {/* Edit Item Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
-            <DialogDescription>
-              {editingItem ? 'Update item details' : 'Add a new inventory item'}
-            </DialogDescription>
+            <DialogTitle>Edit Item</DialogTitle>
+            <DialogDescription>Update inventory item details</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Name *</Label>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Item Name *</Label>
               <Input
-                value={itemForm.name}
-                onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-                placeholder="e.g., Football"
+                className="h-9"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="e.g., Football, Cricket Bat"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Description</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Description</Label>
               <Input
-                value={itemForm.description}
-                onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-                placeholder="Optional description"
+                className="h-9"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="Optional details"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select value={itemForm.category} onValueChange={(v) => setItemForm({ ...itemForm, category: v })}>
-                  <SelectTrigger>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Category</Label>
+                <Select value={editForm.category} onValueChange={(v) => setEditForm({ ...editForm, category: v })}>
+                  <SelectTrigger className="h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -596,51 +912,55 @@ export default function InventoryPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Location</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Location</Label>
                 <Input
-                  value={itemForm.location}
-                  onChange={(e) => setItemForm({ ...itemForm, location: e.target.value })}
-                  placeholder="e.g., Store Room A"
+                  className="h-9"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  placeholder="Store Room"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Quantity</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Quantity *</Label>
                 <Input
+                  className="h-9"
                   type="number"
                   min="0"
-                  value={itemForm.quantity}
-                  onChange={(e) => setItemForm({ ...itemForm, quantity: Number(e.target.value) })}
+                  value={editForm.quantity}
+                  onChange={(e) => setEditForm({ ...editForm, quantity: Number(e.target.value) })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Unit</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Unit</Label>
                 <Input
-                  value={itemForm.unit}
-                  onChange={(e) => setItemForm({ ...itemForm, unit: e.target.value })}
+                  className="h-9"
+                  value={editForm.unit}
+                  onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })}
                   placeholder="pcs"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Min Qty</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Min Qty</Label>
                 <Input
+                  className="h-9"
                   type="number"
                   min="0"
-                  value={itemForm.minQuantity}
-                  onChange={(e) => setItemForm({ ...itemForm, minQuantity: Number(e.target.value) })}
+                  value={editForm.minQuantity}
+                  onChange={(e) => setEditForm({ ...editForm, minQuantity: Number(e.target.value) })}
                 />
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setItemDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveItem} disabled={saving} className="bg-amber-500 hover:bg-amber-600">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
-              {editingItem ? 'Update' : 'Create'}
+            <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleUpdateItem} disabled={saving} className="bg-amber-500 hover:bg-amber-600">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
+              Update
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -648,43 +968,45 @@ export default function InventoryPage() {
 
       {/* Loan Dialog */}
       <Dialog open={loanDialogOpen} onOpenChange={setLoanDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create Loan</DialogTitle>
+            <DialogTitle>Issue Loan</DialogTitle>
             <DialogDescription>
-              Record an item being loaned to someone
+              Record item being loaned out
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Item *</Label>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Select Item *</Label>
               <Select value={loanForm.itemId} onValueChange={(v) => setLoanForm({ ...loanForm, itemId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select item" />
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Choose item to loan" />
                 </SelectTrigger>
                 <SelectContent>
-                  {items.filter((i) => i.quantity > 0).map((item) => (
+                  {items.filter((i) => i.quantity - i.loanedQty > 0).map((item) => (
                     <SelectItem key={item.id} value={item.id}>
-                      {item.name} ({item.quantity} available)
+                      {item.name} ({item.quantity - item.loanedQty} available)
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Borrower Name *</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Borrower Name *</Label>
                 <Input
+                  className="h-9"
                   value={loanForm.borrowerName}
                   onChange={(e) => setLoanForm({ ...loanForm, borrowerName: e.target.value })}
                   placeholder="Full name"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Roll Number</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Roll Number</Label>
                 <Input
+                  className="h-9"
                   value={loanForm.borrowerRoll}
                   onChange={(e) => setLoanForm({ ...loanForm, borrowerRoll: e.target.value })}
                   placeholder="Optional"
@@ -692,18 +1014,20 @@ export default function InventoryPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Phone Number *</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Phone Number *</Label>
                 <Input
+                  className="h-9"
                   value={loanForm.borrowerPhone}
                   onChange={(e) => setLoanForm({ ...loanForm, borrowerPhone: e.target.value })}
                   placeholder="03001234567"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Quantity</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Quantity</Label>
                 <Input
+                  className="h-9"
                   type="number"
                   min="1"
                   value={loanForm.quantity}
@@ -712,18 +1036,10 @@ export default function InventoryPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Expected Return Date</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Notes</Label>
               <Input
-                type="date"
-                value={loanForm.expectedReturnDate}
-                onChange={(e) => setLoanForm({ ...loanForm, expectedReturnDate: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Input
+                className="h-9"
                 value={loanForm.notes}
                 onChange={(e) => setLoanForm({ ...loanForm, notes: e.target.value })}
                 placeholder="Optional notes"
@@ -732,10 +1048,10 @@ export default function InventoryPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLoanDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateLoan} disabled={saving} className="bg-amber-500 hover:bg-amber-600">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
-              Create Loan
+            <Button variant="outline" size="sm" onClick={() => setLoanDialogOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleCreateLoan} disabled={saving} className="bg-amber-500 hover:bg-amber-600">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4 mr-1" />}
+              Issue Loan
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       contactNumber,
       alternativeContactNumber,
       gender,
+      teamName,
       selectedGames,
       teamMembers,
       totalAmount,
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!email || !name || !rollNumber || !contactNumber || !gender || !selectedGames || !Array.isArray(selectedGames) || selectedGames.length === 0 || !paymentMethod || totalAmount === undefined || totalAmount === null) {
+    if (!email || !name || !rollNumber || !contactNumber || !gender || !teamName || !selectedGames || !Array.isArray(selectedGames) || selectedGames.length === 0 || !paymentMethod || totalAmount === undefined || totalAmount === null) {
       return NextResponse.json(
         { error: 'Missing required fields', received: body },
         { status: 400 }
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
       name,
       rollNumber,
       gender,
+      teamName,
       selectedGamesCount: selectedGames.length,
       teamMembersCount: teamMembers ? Object.keys(teamMembers).length : 0,
       totalAmount: totalAmountNum,
@@ -66,11 +68,11 @@ export async function POST(request: NextRequest) {
     const result = await sql`
       INSERT INTO registrations (
         id, email, name, roll_number, contact_number, alternative_contact_number,
-        gender, selected_games, team_members, total_amount, payment_method, slip_id, transaction_id,
+        gender, team_name, selected_games, team_members, total_amount, payment_method, slip_id, transaction_id,
         screenshot_url, status, created_at, updated_at
       ) VALUES (
         ${id}, ${email}, ${name}, ${rollNumber}, ${contactNumber}, ${alternativeContactNumber || null},
-        ${gender}, ${selectedGamesJson}, ${teamMembersJson}, ${totalAmountNum}, ${paymentMethod}, ${slipId}, ${transactionId || null},
+        ${gender}, ${teamName}, ${selectedGamesJson}, ${teamMembersJson}, ${totalAmountNum}, ${paymentMethod}, ${slipId}, ${transactionId || null},
         ${screenshotUrl || null}, ${status}, NOW(), NOW()
       )
       RETURNING registration_number
