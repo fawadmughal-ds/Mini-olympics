@@ -140,7 +140,7 @@ export default function SuperAdminPage() {
         ...(editingGroup && { id: editingGroup.id }),
         gameName: formData.gameName,
         gender: formData.gender,
-        groupTitle: formData.groupTitle || `${formData.gameName} (${formData.gender === 'boys' ? 'Boys' : 'Girls'})`,
+        groupTitle: formData.groupTitle || `${formData.gameName} (${formData.gender === 'boys' ? 'Male' : 'Female'})`,
         groupUrl: formData.groupUrl || null,
         coordinatorName: formData.coordinatorName || null,
         coordinatorPhone: formData.coordinatorPhone || null,
@@ -219,7 +219,7 @@ export default function SuperAdminPage() {
           </div>
           Sport Groups
         </h1>
-        <p className="text-slate-500 mt-1">Manage WhatsApp groups for Boys and Girls separately</p>
+        <p className="text-slate-500 mt-1">Manage WhatsApp groups for Male and Female separately</p>
       </div>
 
       {/* Info Card */}
@@ -232,7 +232,7 @@ export default function SuperAdminPage() {
             <div>
               <h3 className="font-bold text-lg mb-1">Gender-Specific Groups</h3>
               <p className="text-purple-100 text-sm">
-                Each game has <strong>separate groups</strong> for Boys and Girls. Configure WhatsApp links and coordinator contacts for each.
+                Each game has <strong>separate groups</strong> for Male and Female. Configure WhatsApp links and coordinator contacts for each.
               </p>
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function SuperAdminPage() {
           className={genderTab === 'boys' ? 'bg-blue-600 hover:bg-blue-700' : ''}
         >
           <User className="h-4 w-4 mr-2" />
-          Boys ({boysGroups.length})
+          Male ({boysGroups.length})
         </Button>
         <Button
           onClick={() => setGenderTab('girls')}
@@ -255,7 +255,7 @@ export default function SuperAdminPage() {
           className={genderTab === 'girls' ? 'bg-pink-500 hover:bg-pink-600' : ''}
         >
           <UserCircle2 className="h-4 w-4 mr-2" />
-          Girls ({girlsGroups.length})
+          Female ({girlsGroups.length})
         </Button>
       </div>
 
@@ -265,7 +265,7 @@ export default function SuperAdminPage() {
         {isSuperAdmin && (
           <Button onClick={() => openCreateDialog(genderTab)} className={genderTab === 'boys' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-pink-500 hover:bg-pink-600'}>
             <Plus className="h-4 w-4 mr-2" />
-            Add {genderTab === 'boys' ? 'Boys' : 'Girls'} Group
+            Add {genderTab === 'boys' ? 'Male' : 'Female'} Group
           </Button>
         )}
       </div>
@@ -283,7 +283,7 @@ export default function SuperAdminPage() {
             {isSuperAdmin && (
               <Button onClick={() => openCreateDialog(genderTab)} className={genderTab === 'boys' ? 'bg-blue-600' : 'bg-pink-500'}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add First {genderTab === 'boys' ? 'Boys' : 'Girls'} Group
+                Add First {genderTab === 'boys' ? 'Male' : 'Female'} Group
               </Button>
             )}
           </CardContent>
@@ -298,7 +298,7 @@ export default function SuperAdminPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`px-2 py-0.5 rounded text-xs font-bold ${group.gender === 'boys' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                        {group.gender === 'boys' ? '♂ Boys' : '♀ Girls'}
+                        {group.gender === 'boys' ? '♂ Male' : '♀ Female'}
                       </span>
                     </div>
                     <CardTitle className="text-lg">{group.group_title || group.game_name}</CardTitle>
@@ -361,7 +361,7 @@ export default function SuperAdminPage() {
       {isSuperAdmin && availableGames.length > 0 && (
         <Card className="mt-8 border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-lg">Quick Add {genderTab === 'boys' ? 'Boys' : 'Girls'} Games</CardTitle>
+            <CardTitle className="text-lg">Quick Add {genderTab === 'boys' ? 'Male' : 'Female'} Games</CardTitle>
             <CardDescription>Games without {genderTab} groups</CardDescription>
           </CardHeader>
           <CardContent>
@@ -376,7 +376,7 @@ export default function SuperAdminPage() {
                     setFormData({
                       gameName,
                       gender: genderTab,
-                      groupTitle: `${gameName} (${genderTab === 'boys' ? 'Boys' : 'Girls'})`,
+                      groupTitle: `${gameName} (${genderTab === 'boys' ? 'Male' : 'Female'})`,
                       groupUrl: '',
                       coordinatorName: '',
                       coordinatorPhone: '',
@@ -402,9 +402,9 @@ export default function SuperAdminPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {formData.gender === 'boys' ? (
-                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-sm">♂ Boys</span>
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-sm">♂ Male</span>
               ) : (
-                <span className="px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-sm">♀ Girls</span>
+                <span className="px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-sm">♀ Female</span>
               )}
               {editingGroup ? 'Edit Sport Group' : 'Add Sport Group'}
             </DialogTitle>
@@ -418,7 +418,7 @@ export default function SuperAdminPage() {
                 {editingGroup ? (
                   <Input value={formData.gameName} disabled className="bg-slate-50" />
                 ) : (
-                  <Select value={formData.gameName} onValueChange={(v) => setFormData({ ...formData, gameName: v, groupTitle: `${v} (${formData.gender === 'boys' ? 'Boys' : 'Girls'})` })}>
+                  <Select value={formData.gameName} onValueChange={(v) => setFormData({ ...formData, gameName: v, groupTitle: `${v} (${formData.gender === 'boys' ? 'Male' : 'Female'})` })}>
                     <SelectTrigger><SelectValue placeholder="Select a game" /></SelectTrigger>
                     <SelectContent>
                       {availableGames.map((name) => (
@@ -433,8 +433,8 @@ export default function SuperAdminPage() {
                 <Select value={formData.gender} onValueChange={(v) => setFormData({ ...formData, gender: v as 'boys' | 'girls' })} disabled={!!editingGroup}>
                   <SelectTrigger className={editingGroup ? 'bg-slate-50' : ''}><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="boys">Boys</SelectItem>
-                    <SelectItem value="girls">Girls</SelectItem>
+                    <SelectItem value="boys">Male</SelectItem>
+                    <SelectItem value="girls">Female</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

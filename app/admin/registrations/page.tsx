@@ -379,8 +379,8 @@ export default function RegistrationsPage() {
                 <SelectTrigger><SelectValue placeholder="Gender" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Gender</SelectItem>
-                  <SelectItem value="boys">Boys</SelectItem>
-                  <SelectItem value="girls">Girls</SelectItem>
+                  <SelectItem value="boys">Male</SelectItem>
+                  <SelectItem value="girls">Female</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={gameFilter} onValueChange={setGameFilter}>
@@ -476,7 +476,7 @@ export default function RegistrationsPage() {
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${reg.gender === 'boys' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
-                          {reg.gender === 'boys' ? '♂' : '♀'}
+                          {reg.gender === 'boys' ? '♂ Male' : '♀ Female'}
                         </span>
                         <span className="ml-2 text-sm">{selectedGames.length} game(s)</span>
                       </td>

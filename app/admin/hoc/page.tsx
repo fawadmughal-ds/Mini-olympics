@@ -328,7 +328,7 @@ export default function HOCPage() {
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 opacity-80" />
-              <span className="text-xs opacity-80">Boys Teams</span>
+              <span className="text-xs opacity-80">Male Teams</span>
             </div>
             <p className="text-xl font-bold mt-1">{teams.filter(t => t.gender === 'boys').length}</p>
           </CardContent>
@@ -337,7 +337,7 @@ export default function HOCPage() {
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 opacity-80" />
-              <span className="text-xs opacity-80">Girls Teams</span>
+              <span className="text-xs opacity-80">Female Teams</span>
             </div>
             <p className="text-xl font-bold mt-1">{teams.filter(t => t.gender === 'girls').length}</p>
           </CardContent>
@@ -387,8 +387,8 @@ export default function HOCPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="boys">Boys</SelectItem>
-                    <SelectItem value="girls">Girls</SelectItem>
+                    <SelectItem value="boys">Male</SelectItem>
+                    <SelectItem value="girls">Female</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
