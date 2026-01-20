@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await sql`
-      SELECT id, registration_number, slip_id, name, roll_number, contact_number, gender, selected_games, payment_method, status
+      SELECT id, registration_number, slip_id, name, roll_number, contact_number, gender, team_name, selected_games, payment_method, status
       FROM registrations
       WHERE id = ${id} AND slip_id = ${slipId}
       LIMIT 1
@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
         rollNumber: row.roll_number,
         contactNumber: row.contact_number,
         gender: row.gender || 'boys',
+        teamName: row.team_name || '',
         selectedGames,
         paymentMethod: row.payment_method,
         status: row.status,

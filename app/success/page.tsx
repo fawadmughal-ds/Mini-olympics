@@ -78,6 +78,7 @@ function SuccessContent() {
           name: regData.data?.name || '',
           roll: regData.data?.rollNumber || '',
           phone: regData.data?.contactNumber || '',
+          teamName: regData.data?.teamName || '',
         });
 
         const groupsRes = await fetch(`/api/groups?${params.toString()}`, { cache: 'no-store' });

@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const name = sp.get('name') || '';
     const roll = sp.get('roll') || '';
     const phone = sp.get('phone') || '';
+    const teamName = sp.get('teamName') || '';
 
     const games = gamesParam
       .split(',')
@@ -43,13 +44,14 @@ export async function GET(request: NextRequest) {
       name,
       roll,
       phone,
+      teamName,
     };
 
     const data = (rows as any[]).map((r: any) => {
       const gameName = String(r.game_name);
       const template =
         (r.message_template && String(r.message_template)) ||
-        'Assalam o Alaikum, I registered for {game}. My ticket/registration # is {regNum}. Name: {name}, Roll: {roll}, Phone: {phone}. Please add me to the group.';
+        'Assalam o Alaikum, I registered for {game}. My ticket # is {regNum}. Name: {name}, Roll: {roll}, Team: {teamName}.';
 
       const messageText = interpolate(template, { ...vars, game: gameName });
       const coordinatorPhone = r.coordinator_phone ? String(r.coordinator_phone) : '';

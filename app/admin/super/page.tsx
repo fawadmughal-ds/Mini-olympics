@@ -109,7 +109,7 @@ export default function SuperAdminPage() {
       groupUrl: '',
       coordinatorName: '',
       coordinatorPhone: '',
-      messageTemplate: 'Assalam o Alaikum, I registered for {game}. My ticket # is {regNum}. Name: {name}, Roll: {roll}. Please add me to the group.',
+      messageTemplate: 'Assalam o Alaikum, I registered for {game}. My ticket # is {regNum}. Name: {name}, Roll: {roll}, Team: {teamName}. Please add me to the group.',
       isActive: true,
     });
     setDialogOpen(true);
@@ -380,7 +380,7 @@ export default function SuperAdminPage() {
                       groupUrl: '',
                       coordinatorName: '',
                       coordinatorPhone: '',
-                      messageTemplate: 'Assalam o Alaikum, I registered for {game}. My ticket # is {regNum}. Name: {name}, Roll: {roll}. Please add me to the group.',
+                      messageTemplate: 'Assalam o Alaikum, I registered for {game}. My ticket # is {regNum}. Name: {name}, Roll: {roll}, Team: {teamName}. Please add me to the group.',
                       isActive: true,
                     });
                     setDialogOpen(true);
