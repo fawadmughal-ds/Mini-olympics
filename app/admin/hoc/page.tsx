@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -51,6 +52,10 @@ type MatchSchedule = {
 
 type ScheduleData = {
   format: string;
+  groups?: {
+    name: string;
+    teams: string[];
+  }[];
   rounds: {
     round: number;
     name: string;
@@ -72,6 +77,7 @@ export default function HOCPage() {
   const [schedules, setSchedules] = useState<MatchSchedule[]>([]);
   const [selectedGame, setSelectedGame] = useState('');
   const [selectedGender, setSelectedGender] = useState<'boys' | 'girls'>('boys');
+  const [customPrompt, setCustomPrompt] = useState('');
   const [generatedSchedule, setGeneratedSchedule] = useState<ScheduleData | null>(null);
 
   useEffect(() => {
@@ -111,6 +117,11 @@ export default function HOCPage() {
       return;
     }
 
+    if (!customPrompt.trim()) {
+      alert('Please enter your scheduling instructions (e.g., "Make 3 groups, each team plays 2 matches")');
+      return;
+    }
+
     setGenerating(true);
     setGeneratedSchedule(null);
     
@@ -122,6 +133,7 @@ export default function HOCPage() {
           game: selectedGame,
           gender: selectedGender,
           teams: gameTeams.map(t => t.team_name),
+          customPrompt: customPrompt,
         }),
       });
 
@@ -175,6 +187,48 @@ export default function HOCPage() {
       pdf.text(`Format: ${scheduleData.format}`, pageWidth / 2, 32, { align: 'center' });
       
       let y = 50;
+      
+      // Groups section
+      if (scheduleData.groups && scheduleData.groups.length > 0) {
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('GROUPS', 10, y);
+        y += 8;
+        
+        const groupsPerRow = 3;
+        const groupWidth = (pageWidth - 30) / groupsPerRow;
+        
+        scheduleData.groups.forEach((group, idx) => {
+          const col = idx % groupsPerRow;
+          const row = Math.floor(idx / groupsPerRow);
+          const x = 10 + col * groupWidth;
+          const groupY = y + row * 40;
+          
+          // Group box
+          pdf.setFillColor(248, 250, 252);
+          pdf.rect(x, groupY, groupWidth - 5, 35, 'F');
+          pdf.setDrawColor(139, 92, 246);
+          pdf.rect(x, groupY, groupWidth - 5, 35, 'S');
+          
+          // Group name
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(139, 92, 246);
+          pdf.text(group.name, x + 3, groupY + 7);
+          
+          // Teams
+          pdf.setFontSize(8);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(0, 0, 0);
+          group.teams.forEach((team, tIdx) => {
+            pdf.text(`• ${team}`, x + 3, groupY + 14 + (tIdx * 5));
+          });
+        });
+        
+        const groupRows = Math.ceil(scheduleData.groups.length / groupsPerRow);
+        y += groupRows * 45;
+      }
       
       scheduleData.rounds.forEach((round, roundIdx) => {
         // Round header
@@ -344,7 +398,7 @@ export default function HOCPage() {
               <div className="bg-slate-50 rounded-lg p-4">
                 <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
                   <Users className="h-4 w-4 text-purple-500" />
-                  Teams for {selectedGame} ({selectedGender})
+                  Teams for {selectedGame} ({selectedGender}) - {gameTeams.length} teams
                 </h4>
                 {gameTeams.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
@@ -360,10 +414,33 @@ export default function HOCPage() {
               </div>
             )}
 
+            {/* Custom Prompt Input */}
+            {selectedGame && gameTeams.length >= 2 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-500" />
+                  Scheduling Instructions *
+                </label>
+                <textarea
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder="Write how you want matches organized, for example:
+• Make 3 groups, each team plays 2 matches
+• Round robin format, every team plays each other once
+• Knockout tournament with quarter finals
+• 4 groups of 3 teams, top 2 from each group go to knockout"
+                  className="w-full h-28 px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                />
+                <p className="text-xs text-slate-500">
+                  Be specific about: number of groups, matches per team, tournament format, etc.
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <Button
                 onClick={handleGenerateMatches}
-                disabled={generating || !selectedGame || gameTeams.length < 2}
+                disabled={generating || !selectedGame || gameTeams.length < 2 || !customPrompt.trim()}
                 className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
               >
                 {generating ? (
@@ -413,6 +490,23 @@ export default function HOCPage() {
                           Generated {new Date(existingSchedule.created_at).toLocaleDateString()}
                         </span>
                       </div>
+                      
+                      {/* Groups Section */}
+                      {data.groups && data.groups.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {data.groups.map((group, idx) => (
+                            <div key={idx} className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-3">
+                              <h4 className="font-semibold text-purple-700 text-sm mb-2">{group.name}</h4>
+                              <div className="space-y-1">
+                                {group.teams.map((team, tIdx) => (
+                                  <p key={tIdx} className="text-xs text-slate-600">• {team}</p>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
                       <div className="max-h-80 overflow-y-auto space-y-4">
                         {data.rounds.map((round, idx) => (
                           <div key={idx} className="border rounded-lg overflow-hidden">
@@ -432,7 +526,7 @@ export default function HOCPage() {
                         ))}
                       </div>
                       {data.notes && (
-                        <p className="text-xs text-slate-500 italic">{data.notes}</p>
+                        <p className="text-xs text-slate-500 italic mt-2">📝 {data.notes}</p>
                       )}
                     </>
                   );
@@ -445,6 +539,23 @@ export default function HOCPage() {
                     {generatedSchedule.format} - Just Generated!
                   </span>
                 </div>
+                
+                {/* Groups Section */}
+                {generatedSchedule.groups && generatedSchedule.groups.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {generatedSchedule.groups.map((group, idx) => (
+                      <div key={idx} className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-3">
+                        <h4 className="font-semibold text-emerald-700 text-sm mb-2">{group.name}</h4>
+                        <div className="space-y-1">
+                          {group.teams.map((team, tIdx) => (
+                            <p key={tIdx} className="text-xs text-slate-600">• {team}</p>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
                 <div className="max-h-80 overflow-y-auto space-y-4">
                   {generatedSchedule.rounds.map((round, idx) => (
                     <div key={idx} className="border rounded-lg overflow-hidden">
@@ -463,6 +574,9 @@ export default function HOCPage() {
                     </div>
                   ))}
                 </div>
+                {generatedSchedule.notes && (
+                  <p className="text-xs text-slate-500 italic mt-2">📝 {generatedSchedule.notes}</p>
+                )}
               </div>
             ) : (
               <div className="text-center py-12 text-slate-400">

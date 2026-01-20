@@ -86,10 +86,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { game, gender, teams } = body;
+    const { game, gender, teams, customPrompt } = body;
 
     if (!game || !gender || !teams || !Array.isArray(teams) || teams.length < 2) {
       return NextResponse.json({ error: 'Game, gender, and at least 2 teams are required' }, { status: 400 });
+    }
+
+    if (!customPrompt || !customPrompt.trim()) {
+      return NextResponse.json({ error: 'Please provide scheduling instructions' }, { status: 400 });
     }
 
     // Get API key from settings
@@ -100,25 +104,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'AI API key not configured. Go to Settings to add it.' }, { status: 400 });
     }
 
-    // Generate matches using OpenAI
+    // Generate matches using OpenAI with custom prompt
     const prompt = `Generate a tournament match schedule for ${game} (${gender}).
 
-Teams: ${teams.join(', ')}
+Teams (${teams.length} total): ${teams.join(', ')}
 
-Create a fair round-robin or knockout tournament schedule. Return ONLY valid JSON in this format:
+USER INSTRUCTIONS: "${customPrompt}"
+
+IMPORTANT: Follow the user's instructions EXACTLY. If they ask for groups, create groups. If they ask for specific number of matches per team, ensure each team plays that many matches.
+
+Return ONLY valid JSON in this format:
 {
-  "format": "round-robin" or "knockout",
+  "format": "group-stage" or "round-robin" or "knockout" or "custom",
+  "groups": [
+    {
+      "name": "Group A",
+      "teams": ["Team1", "Team2", "Team3"]
+    }
+  ],
   "rounds": [
     {
       "round": 1,
-      "name": "Round 1",
+      "name": "Group A - Round 1" or "Quarter Finals" etc,
       "matches": [
         { "match": 1, "team1": "Team A", "team2": "Team B", "time": "TBD", "venue": "TBD" }
       ]
     }
   ],
-  "notes": "any additional notes"
-}`;
+  "notes": "Summary of the format used based on user instructions"
+}
+
+Make sure to include the groups array if creating a group-stage format. Ensure the schedule is fair and follows the user's instructions.`;
 
     const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
