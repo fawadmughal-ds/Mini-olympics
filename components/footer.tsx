@@ -12,8 +12,11 @@ export default function Footer() {
             <span className="font-semibold text-sm">Mini Olympics 2026</span>
           </div>
           <p className="text-sm text-slate-400">
-            Developed by{' '}
-            <span className="font-semibold text-blue-400">Fawad Mughal</span>
+            © {new Date().getFullYear()}{' '}
+            <a href="https://pucit.edu.pk" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+              FCIT Sports Society
+            </a>
+            . All rights reserved.
           </p>
         </div>
       </div>
