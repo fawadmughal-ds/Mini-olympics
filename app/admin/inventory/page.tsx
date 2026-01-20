@@ -534,7 +534,9 @@ export default function InventoryPage() {
 
       {/* Items Tab */}
       {activeTab === 'items' && (
-        <Card className="border-0 shadow-lg overflow-hidden">
+        <>
+        {/* Desktop Table */}
+        <Card className="border-0 shadow-lg overflow-hidden hidden lg:block">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -664,6 +666,91 @@ export default function InventoryPage() {
             </div>
           )}
         </Card>
+        
+        {/* Mobile Cards View */}
+        <div className="lg:hidden space-y-3">
+          {filteredItems.length === 0 ? (
+            <Card className="border-0 shadow-lg">
+              <CardContent className="py-12 text-center text-slate-400">
+                <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                No items found. Go to "Add Items" tab to add inventory.
+              </CardContent>
+            </Card>
+          ) : (
+            filteredItems.map((item, index) => {
+              const available = item.quantity - item.loanedQty;
+              const isLowStock = available <= item.min_quantity;
+              
+              return (
+                <Card key={item.id} className="border-0 shadow-md overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-semibold text-slate-800">{item.name}</p>
+                        <span className="px-2 py-0.5 bg-slate-100 rounded text-xs text-slate-600">
+                          {getCategoryLabel(item.category)}
+                        </span>
+                      </div>
+                      {isLowStock ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-100 text-rose-700 rounded text-xs font-medium">
+                          <AlertTriangle className="h-3 w-3" /> Low
+                        </span>
+                      ) : available === 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+                          <XCircle className="h-3 w-3" /> Loaned
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">
+                          <CheckCircle className="h-3 w-3" /> OK
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                      <div className="bg-slate-100 rounded p-2">
+                        <p className="text-xs text-slate-500">Total</p>
+                        <p className="font-bold text-slate-700">{item.quantity}</p>
+                      </div>
+                      <div className="bg-emerald-50 rounded p-2">
+                        <p className="text-xs text-emerald-600">Available</p>
+                        <p className="font-bold text-emerald-600">{available}</p>
+                      </div>
+                      <div className="bg-amber-50 rounded p-2">
+                        <p className="text-xs text-amber-600">On Loan</p>
+                        <p className="font-bold text-amber-600">{item.loanedQty}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t">
+                      <span className="text-xs text-slate-500">{item.location || 'No location'}</span>
+                      <div className="flex gap-1">
+                        <Button size="sm" onClick={() => openLoanDialog(item)} className="h-8 bg-amber-500 hover:bg-amber-600 text-xs">
+                          <ArrowRightLeft className="h-3 w-3 mr-1" /> Loan
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => openEditDialog(item)} className="h-8 w-8 p-0">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteItem(item)} className="h-8 w-8 p-0 text-red-500">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+          
+          {/* Mobile Summary */}
+          {filteredItems.length > 0 && (
+            <Card className="border-0 shadow-md bg-slate-100">
+              <CardContent className="p-4 flex justify-between text-sm">
+                <span><span className="text-slate-500">Total:</span> <span className="font-bold">{totalStock}</span></span>
+                <span><span className="text-emerald-600">Available:</span> <span className="font-bold text-emerald-600">{totalAvailable}</span></span>
+                <span><span className="text-amber-600">Loaned:</span> <span className="font-bold text-amber-600">{totalLoaned}</span></span>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+        </>
       )}
 
       {/* Add Items Tab - Spreadsheet View */}

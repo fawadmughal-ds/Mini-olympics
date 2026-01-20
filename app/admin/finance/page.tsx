@@ -866,8 +866,8 @@ export default function FinancePage() {
         </div>
       </div>
 
-      {/* Records Table */}
-      <Card className="border-0 shadow-lg overflow-hidden">
+      {/* Records Table - Desktop */}
+      <Card className="border-0 shadow-lg overflow-hidden hidden lg:block">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -971,6 +971,98 @@ export default function FinancePage() {
           </div>
         )}
       </Card>
+
+      {/* Mobile Cards View */}
+      <div className="lg:hidden space-y-3">
+        {filteredRecords.length === 0 ? (
+          <Card className="border-0 shadow-lg">
+            <CardContent className="py-12 text-center text-slate-400">
+              <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              No records found
+            </CardContent>
+          </Card>
+        ) : (
+          filteredRecords.map((record, index) => (
+            <Card key={record.id} className={`border-0 shadow-md overflow-hidden ${
+              record.record_type === 'income' ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-rose-500'
+            }`}>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                      record.record_type === 'income' 
+                        ? 'bg-emerald-100 text-emerald-700' 
+                        : 'bg-rose-100 text-rose-700'
+                    }`}>
+                      {record.record_type === 'income' ? <ArrowUpCircle className="h-3 w-3" /> : <ArrowDownCircle className="h-3 w-3" />}
+                      {record.record_type === 'income' ? 'Income' : 'Expense'}
+                    </span>
+                    <p className="text-xs text-slate-500 mt-1">{new Date(record.record_date).toLocaleDateString()}</p>
+                  </div>
+                  <p className={`text-lg font-bold ${
+                    record.record_type === 'income' ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
+                    {record.record_type === 'income' ? '+' : '-'}Rs. {Number(record.amount).toLocaleString()}
+                  </p>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p><span className="text-slate-500">Category:</span> <span className="font-medium">{getCategoryLabel(record.category, record.record_type)}</span></p>
+                  {record.description && <p className="text-slate-600 truncate">{record.description}</p>}
+                  <p><span className="text-slate-500">Payment:</span> {getPaymentLabel(record.payment_method)}</p>
+                </div>
+                <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                  <div className="flex gap-2">
+                    {record.attachments?.length > 0 && record.attachments[0].file_url && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-8 text-blue-600"
+                        onClick={() => setPreviewImage(record.attachments[0].file_url)}
+                      >
+                        <Eye className="h-3 w-3 mr-1" /> Receipt
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => openEditDialog(record)} className="h-8 w-8 p-0">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDelete(record)} className="h-8 w-8 p-0 text-red-500">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+        
+        {/* Mobile Summary Footer */}
+        {filteredRecords.length > 0 && (
+          <Card className="border-0 shadow-md bg-slate-100">
+            <CardContent className="p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Total Records:</span>
+                <span className="font-semibold">{filteredRecords.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Income:</span>
+                <span className="font-semibold text-emerald-600">Rs. {summary.totalIncome.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Expenses:</span>
+                <span className="font-semibold text-rose-600">Rs. {summary.totalExpense.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t">
+                <span className="text-slate-600 font-medium">Balance:</span>
+                <span className={`font-bold ${summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                  Rs. {summary.balance.toLocaleString()}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
