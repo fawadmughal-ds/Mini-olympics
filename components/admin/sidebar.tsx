@@ -16,6 +16,7 @@ import {
   X,
   Trophy,
   Settings,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -79,6 +80,12 @@ export default function AdminSidebar({ userRole, username, onLogout }: AdminSide
       label: 'HOC Scheduling',
       href: '/admin/hoc',
       icon: <Trophy className="h-5 w-5" />,
+      roles: ['super_admin', 'admin'],
+    },
+    {
+      label: 'Email Composer',
+      href: '/admin/email',
+      icon: <Mail className="h-5 w-5" />,
       roles: ['super_admin', 'admin'],
     },
     {

@@ -34,6 +34,9 @@ import {
   Edit,
   DollarSign,
   Users,
+  Mail,
+  Server,
+  Send,
 } from 'lucide-react';
 
 type GamePricing = {
@@ -47,10 +50,19 @@ type GamePricing = {
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingSmtp, setSavingSmtp] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [smtpSaveSuccess, setSmtpSaveSuccess] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
   const [settings, setSettings] = useState({
     openai_api_key: '',
+    smtp_host: 'smtp.gmail.com',
+    smtp_port: '587',
+    smtp_email: '',
+    smtp_password: '',
+    smtp_from_name: 'FCIT Sports Society',
   });
 
   // Games state
@@ -80,6 +92,11 @@ export default function SettingsPage() {
       if (data.success) {
         setSettings({
           openai_api_key: data.data.openai_api_key || '',
+          smtp_host: data.data.smtp_host || 'smtp.gmail.com',
+          smtp_port: data.data.smtp_port || '587',
+          smtp_email: data.data.smtp_email || '',
+          smtp_password: data.data.smtp_password || '',
+          smtp_from_name: data.data.smtp_from_name || 'FCIT Sports Society',
         });
       }
     } catch (error) {
@@ -124,6 +141,62 @@ export default function SettingsPage() {
       alert('Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveSmtp = async () => {
+    setSavingSmtp(true);
+    setSmtpSaveSuccess(false);
+    try {
+      // Save all SMTP settings
+      const smtpSettings = [
+        { key: 'smtp_host', value: settings.smtp_host },
+        { key: 'smtp_port', value: settings.smtp_port },
+        { key: 'smtp_email', value: settings.smtp_email },
+        { key: 'smtp_password', value: settings.smtp_password },
+        { key: 'smtp_from_name', value: settings.smtp_from_name },
+      ];
+
+      for (const setting of smtpSettings) {
+        await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(setting),
+        });
+      }
+
+      setSmtpSaveSuccess(true);
+      setTimeout(() => setSmtpSaveSuccess(false), 3000);
+    } catch (error) {
+      alert('Failed to save SMTP settings');
+    } finally {
+      setSavingSmtp(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!settings.smtp_email || !settings.smtp_password) {
+      alert('Please configure SMTP email and password first');
+      return;
+    }
+
+    setTestingEmail(true);
+    try {
+      const res = await fetch('/api/admin/email/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: settings.smtp_email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Test email sent successfully! Check your inbox.');
+      } else {
+        alert('Failed to send test email: ' + data.error);
+      }
+    } catch (error) {
+      alert('Failed to send test email');
+    } finally {
+      setTestingEmail(false);
     }
   };
 
@@ -262,6 +335,140 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* SMTP Email Settings */}
+        <Card className="border-0 shadow-lg lg:col-span-2">
+          <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Configuration (SMTP)
+            </CardTitle>
+            <CardDescription className="text-blue-100">
+              Configure email settings for sending notifications and announcements
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="smtpEmail" className="text-sm font-medium">Email Address *</Label>
+                  <Input
+                    id="smtpEmail"
+                    type="email"
+                    value={settings.smtp_email}
+                    onChange={(e) => setSettings({ ...settings, smtp_email: e.target.value })}
+                    placeholder="sports@pucit.edu.pk"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="smtpPassword" className="text-sm font-medium">App Password *</Label>
+                  <div className="relative">
+                    <Input
+                      id="smtpPassword"
+                      type={showSmtpPassword ? 'text' : 'password'}
+                      value={settings.smtp_password}
+                      onChange={(e) => setSettings({ ...settings, smtp_password: e.target.value })}
+                      placeholder="16-character app password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showSmtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Generate from{' '}
+                    <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                      Google App Passwords
+                    </a>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="smtpFromName" className="text-sm font-medium">From Name</Label>
+                  <Input
+                    id="smtpFromName"
+                    value={settings.smtp_from_name}
+                    onChange={(e) => setSettings({ ...settings, smtp_from_name: e.target.value })}
+                    placeholder="FCIT Sports Society"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpHost" className="text-sm font-medium">SMTP Server</Label>
+                    <Input
+                      id="smtpHost"
+                      value={settings.smtp_host}
+                      onChange={(e) => setSettings({ ...settings, smtp_host: e.target.value })}
+                      placeholder="smtp.gmail.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtpPort" className="text-sm font-medium">Port</Label>
+                    <Input
+                      id="smtpPort"
+                      value={settings.smtp_port}
+                      onChange={(e) => setSettings({ ...settings, smtp_port: e.target.value })}
+                      placeholder="587"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex gap-2">
+                    <Server className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-blue-800 font-medium">Gmail SMTP Settings:</p>
+                      <ul className="text-xs text-blue-700 mt-1 space-y-1">
+                        <li>• Server: <code className="bg-blue-100 px-1 rounded">smtp.gmail.com</code></li>
+                        <li>• Port: <code className="bg-blue-100 px-1 rounded">587</code> (TLS)</li>
+                        <li>• Enable 2-Step Verification on Google Account</li>
+                        <li>• Use App Password, not your Gmail password</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    onClick={handleSaveSmtp}
+                    disabled={savingSmtp}
+                    className="bg-blue-500 hover:bg-blue-600"
+                  >
+                    {savingSmtp ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : smtpSaveSuccess ? (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {smtpSaveSuccess ? 'Saved!' : 'Save SMTP'}
+                  </Button>
+                  <Button
+                    onClick={handleTestEmail}
+                    disabled={testingEmail || !settings.smtp_email}
+                    variant="outline"
+                    className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                  >
+                    {testingEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Send Test Email
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* API Key Settings */}
         <Card className="border-0 shadow-lg">
           <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-t-lg">
