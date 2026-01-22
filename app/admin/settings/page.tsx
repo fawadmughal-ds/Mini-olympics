@@ -6,6 +6,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Settings,
   Key,
   Save,
@@ -14,7 +28,21 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  Gamepad2,
+  Plus,
+  Trash2,
+  Edit,
+  DollarSign,
+  Users,
 } from 'lucide-react';
+
+type GamePricing = {
+  id: number;
+  game_name: string;
+  gender: string;
+  price: number;
+  players: number | null;
+};
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -25,8 +53,23 @@ export default function SettingsPage() {
     openai_api_key: '',
   });
 
+  // Games state
+  const [games, setGames] = useState<GamePricing[]>([]);
+  const [loadingGames, setLoadingGames] = useState(true);
+  const [gameDialogOpen, setGameDialogOpen] = useState(false);
+  const [editingGame, setEditingGame] = useState<GamePricing | null>(null);
+  const [savingGame, setSavingGame] = useState(false);
+  const [gameForm, setGameForm] = useState({
+    game_name: '',
+    boys_price: '',
+    boys_players: '',
+    girls_price: '',
+    girls_players: '',
+  });
+
   useEffect(() => {
     loadSettings();
+    loadGames();
   }, []);
 
   const loadSettings = async () => {
@@ -43,6 +86,21 @@ export default function SettingsPage() {
       console.error('Load settings error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGames = async () => {
+    setLoadingGames(true);
+    try {
+      const res = await fetch('/api/admin/games', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) {
+        setGames(data.data);
+      }
+    } catch (error) {
+      console.error('Load games error:', error);
+    } finally {
+      setLoadingGames(false);
     }
   };
 
@@ -69,6 +127,119 @@ export default function SettingsPage() {
     }
   };
 
+  const handleOpenGameDialog = (game?: GamePricing) => {
+    if (game) {
+      // Find all entries for this game
+      const gameName = game.game_name;
+      const boysEntry = games.find(g => g.game_name === gameName && g.gender === 'boys');
+      const girlsEntry = games.find(g => g.game_name === gameName && g.gender === 'girls');
+      
+      setEditingGame(game);
+      setGameForm({
+        game_name: gameName,
+        boys_price: boysEntry?.price?.toString() || '',
+        boys_players: boysEntry?.players?.toString() || '',
+        girls_price: girlsEntry?.price?.toString() || '',
+        girls_players: girlsEntry?.players?.toString() || '',
+      });
+    } else {
+      setEditingGame(null);
+      setGameForm({
+        game_name: '',
+        boys_price: '',
+        boys_players: '',
+        girls_price: '',
+        girls_players: '',
+      });
+    }
+    setGameDialogOpen(true);
+  };
+
+  const handleSaveGame = async () => {
+    if (!gameForm.game_name.trim()) {
+      alert('Game name is required');
+      return;
+    }
+
+    setSavingGame(true);
+    try {
+      // Save boys pricing if provided
+      if (gameForm.boys_price) {
+        await fetch('/api/admin/games', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game_name: gameForm.game_name.trim(),
+            gender: 'boys',
+            price: parseFloat(gameForm.boys_price),
+            players: gameForm.boys_players ? parseInt(gameForm.boys_players) : null,
+          }),
+        });
+      } else if (editingGame) {
+        // Delete boys entry if price is removed
+        await fetch(`/api/admin/games?game_name=${encodeURIComponent(gameForm.game_name)}&gender=boys`, {
+          method: 'DELETE',
+        });
+      }
+
+      // Save girls pricing if provided
+      if (gameForm.girls_price) {
+        await fetch('/api/admin/games', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game_name: gameForm.game_name.trim(),
+            gender: 'girls',
+            price: parseFloat(gameForm.girls_price),
+            players: gameForm.girls_players ? parseInt(gameForm.girls_players) : null,
+          }),
+        });
+      } else if (editingGame) {
+        // Delete girls entry if price is removed
+        await fetch(`/api/admin/games?game_name=${encodeURIComponent(gameForm.game_name)}&gender=girls`, {
+          method: 'DELETE',
+        });
+      }
+
+      setGameDialogOpen(false);
+      loadGames();
+    } catch (error) {
+      alert('Failed to save game');
+    } finally {
+      setSavingGame(false);
+    }
+  };
+
+  const handleDeleteGame = async (gameName: string) => {
+    if (!confirm(`Delete "${gameName}" (both male and female pricing)?`)) return;
+
+    try {
+      // Delete both genders
+      await fetch(`/api/admin/games?game_name=${encodeURIComponent(gameName)}&gender=boys`, {
+        method: 'DELETE',
+      });
+      await fetch(`/api/admin/games?game_name=${encodeURIComponent(gameName)}&gender=girls`, {
+        method: 'DELETE',
+      });
+      loadGames();
+    } catch (error) {
+      alert('Failed to delete game');
+    }
+  };
+
+  // Group games by name for display
+  const groupedGames = games.reduce((acc, game) => {
+    if (!acc[game.game_name]) {
+      acc[game.game_name] = { boys: null, girls: null };
+    }
+    if (game.gender === 'boys') {
+      acc[game.game_name].boys = game;
+    } else {
+      acc[game.game_name].girls = game;
+    }
+    return acc;
+  }, {} as Record<string, { boys: GamePricing | null; girls: GamePricing | null }>);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -90,87 +261,276 @@ export default function SettingsPage() {
         <p className="text-slate-500 text-sm mt-1">Configure system settings (Super Admin only)</p>
       </div>
 
-      {/* API Key Settings */}
-      <Card className="border-0 shadow-lg max-w-2xl">
-        <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-t-lg">
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
-            AI API Configuration
-          </CardTitle>
-          <CardDescription className="text-purple-100">
-            Configure OpenAI API key for AI-powered match generation
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="apiKey" className="text-sm font-medium">OpenAI API Key</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  id="apiKey"
-                  type={showApiKey ? 'text' : 'password'}
-                  value={settings.openai_api_key}
-                  onChange={(e) => setSettings({ ...settings, openai_api_key: e.target.value })}
-                  placeholder="sk-..."
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* API Key Settings */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              AI API Configuration
+            </CardTitle>
+            <CardDescription className="text-purple-100">
+              Configure OpenAI API key for AI-powered match generation
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="apiKey" className="text-sm font-medium">OpenAI API Key</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="apiKey"
+                    type={showApiKey ? 'text' : 'password'}
+                    value={settings.openai_api_key}
+                    onChange={(e) => setSettings({ ...settings, openai_api_key: e.target.value })}
+                    placeholder="sk-..."
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
+              <p className="text-xs text-slate-500">
+                Get your API key from{' '}
+                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-purple-600 hover:underline">
+                  OpenAI Dashboard
+                </a>
+              </p>
             </div>
-            <p className="text-xs text-slate-500">
-              Get your API key from{' '}
-              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-purple-600 hover:underline">
-                OpenAI Dashboard
-              </a>
-            </p>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handleSaveApiKey}
-              disabled={saving}
-              className="bg-purple-500 hover:bg-purple-600"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : saveSuccess ? (
-                <CheckCircle className="h-4 w-4 mr-2" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleSaveApiKey}
+                disabled={saving}
+                className="bg-purple-500 hover:bg-purple-600"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : saveSuccess ? (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                {saveSuccess ? 'Saved!' : 'Save API Key'}
+              </Button>
+              
+              {settings.openai_api_key && (
+                <span className="flex items-center gap-1 text-sm text-emerald-600">
+                  <CheckCircle className="h-4 w-4" />
+                  API key configured
+                </span>
               )}
-              {saveSuccess ? 'Saved!' : 'Save API Key'}
-            </Button>
-            
-            {settings.openai_api_key && (
-              <span className="flex items-center gap-1 text-sm text-emerald-600">
-                <CheckCircle className="h-4 w-4" />
-                API key configured
-              </span>
-            )}
-          </div>
+            </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <div className="flex gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-amber-800 font-medium">Important Notes:</p>
-                <ul className="text-xs text-amber-700 mt-1 list-disc list-inside space-y-1">
-                  <li>The API key is stored securely in the database</li>
-                  <li>OpenAI charges for API usage - monitor your usage</li>
-                  <li>Use GPT-3.5-turbo for cost-effective match generation</li>
-                  <li>Only Super Admins can view and modify this setting</li>
-                </ul>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-amber-800 font-medium">Important Notes:</p>
+                  <ul className="text-xs text-amber-700 mt-1 list-disc list-inside space-y-1">
+                    <li>The API key is stored securely in the database</li>
+                    <li>OpenAI charges for API usage - monitor your usage</li>
+                    <li>Use GPT-3.5-turbo for cost-effective match generation</li>
+                    <li>Only Super Admins can view and modify this setting</li>
+                  </ul>
+                </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Games & Pricing Management */}
+        <Card className="border-0 shadow-lg lg:col-span-1">
+          <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-t-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Gamepad2 className="h-5 w-5" />
+                  Games & Pricing
+                </CardTitle>
+                <CardDescription className="text-emerald-100">
+                  Manage games, prices, and team sizes
+                </CardDescription>
+              </div>
+              <Button
+                onClick={() => handleOpenGameDialog()}
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Game
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            {loadingGames ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+              </div>
+            ) : Object.keys(groupedGames).length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                <Gamepad2 className="h-12 w-12 mx-auto text-slate-300 mb-2" />
+                <p>No games configured</p>
+                <p className="text-sm">Click "Add Game" to get started</p>
+              </div>
+            ) : (
+              <div className="max-h-[400px] overflow-y-auto space-y-2">
+                {Object.entries(groupedGames).map(([name, { boys, girls }]) => (
+                  <div key={name} className="border rounded-lg p-3 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-slate-800 truncate">{name}</h4>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {boys && (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                              ♂ Rs.{boys.price}
+                              {boys.players && boys.players > 1 && (
+                                <span className="text-blue-500">({boys.players}p)</span>
+                              )}
+                            </span>
+                          )}
+                          {girls && (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-pink-100 text-pink-700 rounded">
+                              ♀ Rs.{girls.price}
+                              {girls.players && girls.players > 1 && (
+                                <span className="text-pink-500">({girls.players}p)</span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleOpenGameDialog(boys || girls!)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4 text-slate-400" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteGame(name)}
+                          className="h-8 w-8 p-0 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Game Add/Edit Dialog */}
+      <Dialog open={gameDialogOpen} onOpenChange={setGameDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gamepad2 className="h-5 w-5 text-emerald-600" />
+              {editingGame ? 'Edit Game' : 'Add New Game'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingGame ? 'Update game pricing and settings' : 'Add a new game with pricing'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Game Name *</Label>
+              <Input
+                value={gameForm.game_name}
+                onChange={(e) => setGameForm({ ...gameForm, game_name: e.target.value })}
+                placeholder="e.g., Cricket, Football, Chess"
+                disabled={!!editingGame}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Male Pricing */}
+              <div className="space-y-3 p-3 bg-blue-50 rounded-lg">
+                <h4 className="font-medium text-blue-800 flex items-center gap-1">
+                  <span className="text-lg">♂</span> Male
+                </h4>
+                <div className="space-y-2">
+                  <Label className="text-sm text-blue-700">Price (Rs.)</Label>
+                  <Input
+                    type="number"
+                    value={gameForm.boys_price}
+                    onChange={(e) => setGameForm({ ...gameForm, boys_price: e.target.value })}
+                    placeholder="e.g., 200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-blue-700">Team Size</Label>
+                  <Input
+                    type="number"
+                    value={gameForm.boys_players}
+                    onChange={(e) => setGameForm({ ...gameForm, boys_players: e.target.value })}
+                    placeholder="1 for singles"
+                  />
+                </div>
+              </div>
+
+              {/* Female Pricing */}
+              <div className="space-y-3 p-3 bg-pink-50 rounded-lg">
+                <h4 className="font-medium text-pink-800 flex items-center gap-1">
+                  <span className="text-lg">♀</span> Female
+                </h4>
+                <div className="space-y-2">
+                  <Label className="text-sm text-pink-700">Price (Rs.)</Label>
+                  <Input
+                    type="number"
+                    value={gameForm.girls_price}
+                    onChange={(e) => setGameForm({ ...gameForm, girls_price: e.target.value })}
+                    placeholder="e.g., 200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm text-pink-700">Team Size</Label>
+                  <Input
+                    type="number"
+                    value={gameForm.girls_players}
+                    onChange={(e) => setGameForm({ ...gameForm, girls_players: e.target.value })}
+                    placeholder="1 for singles"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Leave price empty to disable the game for that gender. Team size of 1 means individual game.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setGameDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveGame}
+                disabled={savingGame || !gameForm.game_name.trim()}
+                className="bg-emerald-500 hover:bg-emerald-600"
+              >
+                {savingGame ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Game
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

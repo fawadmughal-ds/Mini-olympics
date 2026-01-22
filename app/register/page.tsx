@@ -15,12 +15,20 @@ import {
 } from '@/components/ui/select';
 import { CheckCircle2, Circle, DollarSign, X, Copy, ExternalLink, Users, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
-import { gamesPricing, getAvailableGames, calculateTotal, isTeamGame, getRequiredPlayers } from '@/lib/games-pricing';
+import { gamesPricing as defaultGamesPricing, getAvailableGames as defaultGetAvailableGames, isTeamGame as defaultIsTeamGame, getRequiredPlayers as defaultGetRequiredPlayers } from '@/lib/games-pricing';
 
 type TeamMember = {
   name: string;
   rollNumber: string;
   contactNumber: string;
+};
+
+type GamePrice = {
+  name: string;
+  boys: number | null;
+  girls: number | null;
+  boysPlayers?: number;
+  girlsPlayers?: number;
 };
 
 type FormData = {
@@ -57,18 +65,70 @@ export default function RegisterPage() {
     transactionId: '',
     screenshotUrl: '',
   });
-  const [availableGames, setAvailableGames] = useState(gamesPricing);
+  const [allGames, setAllGames] = useState<GamePrice[]>(defaultGamesPricing);
+  const [availableGames, setAvailableGames] = useState<GamePrice[]>(defaultGamesPricing);
   const [sportGroups, setSportGroups] = useState<any[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
 
+  // Fetch games from database on mount
+  useEffect(() => {
+    const fetchGames = async () => {
+      try {
+        const res = await fetch('/api/games', { cache: 'no-store' });
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          setAllGames(data.data);
+        }
+      } catch (e) {
+        console.error('Failed to load games, using defaults:', e);
+      }
+    };
+    fetchGames();
+  }, []);
+
+  // Helper functions that work with current allGames state
+  const getAvailableGamesForGender = (gender: 'boys' | 'girls'): GamePrice[] => {
+    return allGames.filter((game) => {
+      return gender === 'boys' ? game.boys !== null : game.girls !== null;
+    });
+  };
+
+  const getGamePrice = (gameName: string, gender: 'boys' | 'girls'): number | null => {
+    const game = allGames.find((g) => g.name === gameName);
+    if (!game) return null;
+    return gender === 'boys' ? game.boys : game.girls;
+  };
+
+  const calculateTotal = (selectedGames: string[], gender: 'boys' | 'girls'): number => {
+    let total = 0;
+    selectedGames.forEach((gameName) => {
+      const price = getGamePrice(gameName, gender);
+      if (price !== null) {
+        total += price;
+      }
+    });
+    return total;
+  };
+
+  const getRequiredPlayers = (gameName: string, gender: 'boys' | 'girls'): number | null => {
+    const game = allGames.find((g) => g.name === gameName);
+    if (!game) return null;
+    return gender === 'boys' ? (game.boysPlayers || null) : (game.girlsPlayers || null);
+  };
+
+  const isTeamGame = (gameName: string, gender: 'boys' | 'girls'): boolean => {
+    const requiredPlayers = getRequiredPlayers(gameName, gender);
+    return requiredPlayers !== null && requiredPlayers > 1;
+  };
+
   useEffect(() => {
     if (formData.gender) {
-      setAvailableGames(getAvailableGames(formData.gender));
+      setAvailableGames(getAvailableGamesForGender(formData.gender));
       // Clear selected games and team members when gender changes
       setFormData((prev) => ({ ...prev, selectedGames: [], teamMembers: {} }));
       setSportGroups([]);
     }
-  }, [formData.gender]);
+  }, [formData.gender, allGames]);
 
   // Fetch sport groups for selected games
   useEffect(() => {

@@ -41,6 +41,9 @@ import {
   Banknote,
   Search,
   Loader2,
+  MessageCircle,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 type Registration = {
@@ -106,6 +109,9 @@ export default function RegistrationsPage() {
   const [discountValue, setDiscountValue] = useState<string>('0');
   const [savingDiscount, setSavingDiscount] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [phoneSearch, setPhoneSearch] = useState('');
+  const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -348,10 +354,14 @@ export default function RegistrationsPage() {
                 className="pl-12 h-12"
               />
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className={showFilters ? 'border-blue-500 bg-blue-50' : ''}>
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
+              </Button>
+              <Button variant="outline" onClick={() => setWhatsappDialogOpen(true)} className="border-green-500 text-green-600 hover:bg-green-50">
+                <MessageCircle className="h-4 w-4 mr-2" />
+                WhatsApp Verify
               </Button>
               <Button onClick={handleExport} className="bg-blue-600 hover:bg-blue-700">
                 <Download className="h-4 w-4 mr-2" />
@@ -673,6 +683,143 @@ export default function RegistrationsPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* WhatsApp Verification Dialog */}
+      <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-green-600" />
+              WhatsApp Group Verification
+            </DialogTitle>
+            <DialogDescription>
+              Search by phone number to verify paid registrations for WhatsApp group requests
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-4">
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Input
+                placeholder="Enter phone number to search (e.g., 03001234567)"
+                value={phoneSearch}
+                onChange={(e) => setPhoneSearch(e.target.value)}
+                className="pl-10 h-12 text-lg"
+                autoFocus
+              />
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <h4 className="font-medium text-slate-700 mb-3">
+                {phoneSearch ? 'Search Results' : 'All Paid Registrations'}
+              </h4>
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {registrations
+                  .filter(r => r.status === 'paid')
+                  .filter(r => {
+                    if (!phoneSearch) return true;
+                    const search = phoneSearch.replace(/\D/g, '');
+                    const phone = r.contact_number.replace(/\D/g, '');
+                    const altPhone = (r.alternative_contact_number || '').replace(/\D/g, '');
+                    return phone.includes(search) || altPhone.includes(search);
+                  })
+                  .slice(0, 50)
+                  .map(reg => {
+                    let selectedGames: string[] = [];
+                    try { selectedGames = Array.isArray(reg.selected_games) ? reg.selected_games : JSON.parse(reg.selected_games); } catch {}
+                    const isMatch = phoneSearch && (
+                      reg.contact_number.replace(/\D/g, '').includes(phoneSearch.replace(/\D/g, '')) ||
+                      (reg.alternative_contact_number || '').replace(/\D/g, '').includes(phoneSearch.replace(/\D/g, ''))
+                    );
+                    return (
+                      <div 
+                        key={reg.id} 
+                        className={`p-3 rounded-lg border transition-all ${
+                          isMatch 
+                            ? 'bg-green-50 border-green-300 ring-2 ring-green-200' 
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-blue-600">#{reg.registration_number}</span>
+                              <span className="font-semibold text-slate-800">{reg.name}</span>
+                              <span className="text-sm text-slate-500">{reg.roll_number}</span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="font-mono text-lg font-semibold text-slate-800">
+                                {reg.contact_number}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(reg.contact_number);
+                                  setCopiedPhone(reg.contact_number);
+                                  setTimeout(() => setCopiedPhone(null), 2000);
+                                }}
+                              >
+                                {copiedPhone === reg.contact_number ? (
+                                  <Check className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <Copy className="h-4 w-4 text-slate-400" />
+                                )}
+                              </Button>
+                            </div>
+                            {reg.alternative_contact_number && (
+                              <p className="text-sm text-slate-500">Alt: {reg.alternative_contact_number}</p>
+                            )}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {selectedGames.map(g => (
+                                <span key={g} className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded">{g}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`text-xs px-2 py-1 rounded ${reg.gender === 'boys' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                              {reg.gender === 'boys' ? 'Male' : 'Female'}
+                            </span>
+                            {isMatch && (
+                              <span className="text-xs font-semibold text-green-600 flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                VERIFIED
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                {registrations.filter(r => r.status === 'paid').filter(r => {
+                  if (!phoneSearch) return true;
+                  const search = phoneSearch.replace(/\D/g, '');
+                  const phone = r.contact_number.replace(/\D/g, '');
+                  const altPhone = (r.alternative_contact_number || '').replace(/\D/g, '');
+                  return phone.includes(search) || altPhone.includes(search);
+                }).length === 0 && (
+                  <div className="text-center py-8 text-slate-500">
+                    <XCircle className="h-12 w-12 mx-auto text-rose-300 mb-2" />
+                    <p className="font-medium text-rose-600">No paid registration found</p>
+                    <p className="text-sm">This phone number is not in paid registrations</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h4 className="font-medium text-green-800 mb-2">How to use:</h4>
+              <ol className="text-sm text-green-700 list-decimal list-inside space-y-1">
+                <li>Copy the phone number from WhatsApp group join request</li>
+                <li>Paste it in the search box above</li>
+                <li>If the number matches a paid registration, you'll see "VERIFIED"</li>
+                <li>Approve the WhatsApp group request for verified users</li>
+              </ol>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
