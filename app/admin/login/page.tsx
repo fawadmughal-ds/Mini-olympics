@@ -74,7 +74,7 @@ export default function AdminLoginPage() {
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-blue-100 text-sm font-medium">Email</Label>
+                <Label htmlFor="username" className="text-blue-100 text-sm font-medium"> Email / Username </Label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-300/50" />
                   <Input

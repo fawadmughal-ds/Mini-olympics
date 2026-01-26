@@ -39,8 +39,11 @@ export default function Home() {
   ];
 
   const esports = [
-    { name: 'Fifa', icon: '🎮', color: 'from-green-500 to-emerald-600' },
+    { name: 'Fifa', icon: '⚽', color: 'from-green-500 to-emerald-600' },
     { name: 'Tekken', icon: '🥊', color: 'from-red-500 to-orange-600' },
+    { name: 'Call of Duty', icon: '🔫', color: 'from-slate-600 to-zinc-700' },
+    { name: 'PUBG', icon: '🎯', color: 'from-amber-500 to-yellow-600' },
+    { name: 'Subway Surfers', icon: '🏃', color: 'from-cyan-500 to-blue-500' },
   ];
 
   const GameCard = ({ game, size = 'normal' }: { game: { name: string; icon: string; color: string; players?: string }; size?: 'normal' | 'small' }) => (
@@ -198,14 +201,8 @@ export default function Home() {
               <h3 className="text-xl sm:text-2xl font-bold text-white">Esports</h3>
               <div className="flex-1 h-px bg-gradient-to-r from-rose-500/50 to-transparent"></div>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
               {esports.map((game) => <GameCard key={game.name} game={game} />)}
-            </div>
-            <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl max-w-lg">
-              <p className="text-sm text-amber-300 flex items-center gap-2">
-                <span className="text-xl">⚠️</span>
-                <strong>Note:</strong> Esports matches will be held in OC on scheduled dates.
-              </p>
             </div>
           </div>
         </div>
