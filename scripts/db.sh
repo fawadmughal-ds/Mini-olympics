@@ -615,7 +615,7 @@ cmd_set_role() {
   local role="${2:-}"
   if [[ -z "${username}" || -z "${role}" ]]; then
     echo "Usage: ./scripts/db.sh set-role <username> <role>"
-    echo "Roles: super_admin | admin | inventory_admin | finance_admin"
+    echo "Roles: super_admin | registration_admin | inventory_admin | hoc_admin"
     exit 1
   fi
   load_env

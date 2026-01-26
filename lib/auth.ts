@@ -1,6 +1,6 @@
 import { sql } from '@/lib/db';
 
-export type AdminRole = 'super_admin' | 'admin' | 'inventory_admin' | 'finance_admin';
+export type AdminRole = 'super_admin' | 'registration_admin' | 'inventory_admin' | 'hoc_admin';
 
 export type AdminSession = {
   sessionToken: string;
@@ -8,6 +8,22 @@ export type AdminSession = {
   username: string | null;
   role: AdminRole;
   expiresAt: string | null;
+};
+
+// Define which pages each role can access
+export const rolePermissions: Record<AdminRole, string[]> = {
+  super_admin: ['/admin/dashboard', '/admin/registrations', '/admin/inventory', '/admin/finance', '/admin/super', '/admin/hoc', '/admin/email', '/admin/settings', '/admin/esports'],
+  registration_admin: ['/admin/registrations'],
+  inventory_admin: ['/admin/inventory'],
+  hoc_admin: ['/admin/super', '/admin/hoc'],
+};
+
+// Get the default redirect page for each role
+export const roleDefaultPage: Record<AdminRole, string> = {
+  super_admin: '/admin/dashboard',
+  registration_admin: '/admin/registrations',
+  inventory_admin: '/admin/inventory',
+  hoc_admin: '/admin/hoc',
 };
 
 /**

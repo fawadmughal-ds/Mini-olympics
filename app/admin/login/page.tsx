@@ -30,7 +30,8 @@ export default function AdminLoginPage() {
 
       const data = await response.json();
       if (data.success) {
-        router.push('/admin/dashboard');
+        // Redirect to role-specific page
+        router.push(data.redirectTo || '/admin/dashboard');
       } else {
         setError(data.error || 'Login failed');
       }

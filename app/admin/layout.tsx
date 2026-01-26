@@ -4,6 +4,22 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import AdminSidebar from '@/components/admin/sidebar';
 
+// Define which pages each role can access
+const rolePermissions: Record<string, string[]> = {
+  super_admin: ['/admin/dashboard', '/admin/registrations', '/admin/inventory', '/admin/finance', '/admin/super', '/admin/hoc', '/admin/email', '/admin/settings', '/admin/esports'],
+  registration_admin: ['/admin/registrations'],
+  inventory_admin: ['/admin/inventory'],
+  hoc_admin: ['/admin/super', '/admin/hoc'],
+};
+
+// Get the default redirect page for each role
+const roleDefaultPage: Record<string, string> = {
+  super_admin: '/admin/dashboard',
+  registration_admin: '/admin/registrations',
+  inventory_admin: '/admin/inventory',
+  hoc_admin: '/admin/hoc',
+};
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -11,6 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [userRole, setUserRole] = useState<string>('');
   const [username, setUsername] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   // Skip layout for login page
   const isLoginPage = pathname === '/admin/login';
@@ -25,16 +42,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .then((res) => res.json())
       .then((data) => {
         if (data.authenticated) {
-          setAuthenticated(true);
-          setUserRole(data.role || 'admin');
+          const role = data.role || 'super_admin';
+          setUserRole(role);
           setUsername(data.username || 'Admin');
+          
+          // Check if user has access to current page
+          const allowedPages = rolePermissions[role] || [];
+          const hasAccess = allowedPages.some(page => pathname.startsWith(page));
+          
+          if (!hasAccess) {
+            // Redirect to their default page
+            const defaultPage = roleDefaultPage[role] || '/admin/dashboard';
+            router.push(defaultPage);
+            setAccessDenied(true);
+          } else {
+            setAuthenticated(true);
+          }
         } else {
           router.push('/admin/login');
         }
       })
       .catch(() => router.push('/admin/login'))
       .finally(() => setLoading(false));
-  }, [router, isLoginPage]);
+  }, [router, isLoginPage, pathname]);
 
   const handleLogout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' });
@@ -60,7 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!authenticated) {
+  if (!authenticated || accessDenied) {
     return null;
   }
 

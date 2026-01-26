@@ -142,11 +142,30 @@ export async function POST(request: NextRequest) {
       `;
     }
 
+    // Get user role for redirect
+    let userRole = 'super_admin';
+    try {
+      const userRow = await sql`SELECT role FROM admin_users WHERE username = ${username} LIMIT 1`;
+      userRole = (userRow as any)[0]?.role || 'super_admin';
+    } catch {}
+
+    // Define default redirect page based on role
+    const roleDefaultPage: Record<string, string> = {
+      super_admin: '/admin/dashboard',
+      registration_admin: '/admin/registrations',
+      inventory_admin: '/admin/inventory',
+      hoc_admin: '/admin/hoc',
+    };
+
+    const redirectTo = roleDefaultPage[userRole] || '/admin/dashboard';
+
     // Set cookie in response
     const response = NextResponse.json({
       success: true,
       message: 'Login successful',
       sessionToken,
+      role: userRole,
+      redirectTo,
     });
     
     response.cookies.set('admin_session', sessionToken, {

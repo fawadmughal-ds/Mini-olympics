@@ -50,13 +50,13 @@ export default function AdminSidebar({ userRole, username, onLogout }: AdminSide
       label: 'Dashboard',
       href: '/admin/dashboard',
       icon: <LayoutDashboard className="h-5 w-5" />,
-      roles: ['super_admin', 'admin', 'finance_admin', 'inventory_admin'],
+      roles: ['super_admin'],
     },
     {
       label: 'Registrations',
       href: '/admin/registrations',
       icon: <Users className="h-5 w-5" />,
-      roles: ['super_admin', 'admin'],
+      roles: ['super_admin', 'registration_admin'],
     },
     {
       label: 'Inventory',
@@ -68,25 +68,25 @@ export default function AdminSidebar({ userRole, username, onLogout }: AdminSide
       label: 'Finance',
       href: '/admin/finance',
       icon: <Wallet className="h-5 w-5" />,
-      roles: ['super_admin', 'finance_admin'],
+      roles: ['super_admin'],
     },
     {
       label: 'Sport Groups',
       href: '/admin/super',
       icon: <Shield className="h-5 w-5" />,
-      roles: ['super_admin', 'admin'],
+      roles: ['super_admin', 'hoc_admin'],
     },
     {
       label: 'HOC Scheduling',
       href: '/admin/hoc',
       icon: <Trophy className="h-5 w-5" />,
-      roles: ['super_admin', 'admin'],
+      roles: ['super_admin', 'hoc_admin'],
     },
     {
       label: 'Email Composer',
       href: '/admin/email',
       icon: <Mail className="h-5 w-5" />,
-      roles: ['super_admin', 'admin'],
+      roles: ['super_admin'],
     },
     {
       label: 'Settings',
@@ -101,9 +101,9 @@ export default function AdminSidebar({ userRole, username, onLogout }: AdminSide
   const getRoleBadge = (role: string) => {
     const badges: Record<string, { label: string; color: string }> = {
       super_admin: { label: 'Super Admin', color: 'from-purple-500 to-pink-500' },
-      admin: { label: 'Admin', color: 'from-blue-500 to-indigo-500' },
-      finance_admin: { label: 'Finance', color: 'from-emerald-500 to-teal-500' },
+      registration_admin: { label: 'Registration', color: 'from-blue-500 to-indigo-500' },
       inventory_admin: { label: 'Inventory', color: 'from-amber-500 to-orange-500' },
+      hoc_admin: { label: 'HOC', color: 'from-emerald-500 to-teal-500' },
     };
     return badges[role] || { label: 'Staff', color: 'from-slate-400 to-slate-500' };
   };
