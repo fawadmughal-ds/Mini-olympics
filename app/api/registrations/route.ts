@@ -42,6 +42,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if team name is unique
+    const existingTeam = await sql`
+      SELECT id, team_name FROM registrations 
+      WHERE LOWER(team_name) = LOWER(${teamName})
+      LIMIT 1
+    `;
+    
+    if (existingTeam && existingTeam.length > 0) {
+      return NextResponse.json(
+        { error: 'Team name already exists. Please choose a unique team name.', field: 'teamName' },
+        { status: 400 }
+      );
+    }
+
     const id = uuidv4();
     const slipId = paymentMethod === 'cash' ? generateSlipId() : generateOnlineRefId();
     const status = paymentMethod === 'cash' ? 'pending_cash' : 'pending_online';

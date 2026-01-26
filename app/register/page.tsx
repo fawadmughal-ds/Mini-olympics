@@ -69,6 +69,8 @@ export default function RegisterPage() {
   const [availableGames, setAvailableGames] = useState<GamePrice[]>(defaultGamesPricing);
   const [sportGroups, setSportGroups] = useState<any[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
+  const [teamNameStatus, setTeamNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [teamNameError, setTeamNameError] = useState('');
 
   // Fetch games from database on mount
   useEffect(() => {
@@ -163,6 +165,55 @@ export default function RegisterPage() {
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    
+    // Reset team name status when typing
+    if (field === 'teamName') {
+      setTeamNameStatus('idle');
+      setTeamNameError('');
+    }
+  };
+
+  // Check team name uniqueness
+  const checkTeamName = async () => {
+    const teamName = formData.teamName.trim();
+    if (!teamName || teamName.length < 2) {
+      setTeamNameError('Team name must be at least 2 characters');
+      setTeamNameStatus('idle');
+      return false;
+    }
+    
+    setTeamNameStatus('checking');
+    setTeamNameError('');
+    
+    try {
+      const res = await fetch('/api/registrations/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamName }),
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        if (data.isUnique) {
+          setTeamNameStatus('available');
+          setTeamNameError('');
+          return true;
+        } else {
+          setTeamNameStatus('taken');
+          setTeamNameError(data.message || 'Team name already taken');
+          return false;
+        }
+      } else {
+        setTeamNameError(data.error || 'Failed to verify team name');
+        setTeamNameStatus('idle');
+        return false;
+      }
+    } catch (e) {
+      console.error('Team name check failed:', e);
+      setTeamNameError('Failed to verify team name');
+      setTeamNameStatus('idle');
+      return false;
+    }
   };
 
   const handleGameToggle = (gameName: string) => {
@@ -272,7 +323,15 @@ export default function RegisterPage() {
         }
         router.push(`/success?${params.toString()}`);
       } else {
-        alert('Registration failed: ' + data.error);
+        // Handle team name error specifically
+        if (data.field === 'teamName') {
+          setTeamNameStatus('taken');
+          setTeamNameError(data.error);
+          setStep(1); // Go back to step 1 to fix team name
+          alert('Team name already exists! Please go back and choose a different team name.');
+        } else {
+          alert('Registration failed: ' + data.error);
+        }
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -290,7 +349,8 @@ export default function RegisterPage() {
         formData.rollNumber &&
         formData.contactNumber &&
         formData.gender &&
-        formData.teamName
+        formData.teamName &&
+        teamNameStatus === 'available'
       );
     }
     if (step === 2) {
@@ -392,13 +452,42 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <Label htmlFor="teamName">Team Name *</Label>
-                  <Input
-                    id="teamName"
-                    value={formData.teamName}
-                    onChange={(e) => handleInputChange('teamName', e.target.value)}
-                    placeholder="Enter your team name (e.g., Thunder Hawks)"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Choose a unique name for your team</p>
+                  <div className="flex gap-2">
+                    <Input
+                      id="teamName"
+                      value={formData.teamName}
+                      onChange={(e) => handleInputChange('teamName', e.target.value)}
+                      placeholder="Enter your team name (e.g., Thunder Hawks)"
+                      className={`flex-1 ${teamNameStatus === 'taken' ? 'border-red-500' : teamNameStatus === 'available' ? 'border-green-500' : ''}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={checkTeamName}
+                      disabled={!formData.teamName.trim() || teamNameStatus === 'checking'}
+                      className="whitespace-nowrap"
+                    >
+                      {teamNameStatus === 'checking' ? 'Checking...' : 'Check'}
+                    </Button>
+                  </div>
+                  {teamNameStatus === 'available' && (
+                    <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Team name is available!
+                    </p>
+                  )}
+                  {teamNameStatus === 'taken' && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                      <X className="h-3 w-3" />
+                      {teamNameError}
+                    </p>
+                  )}
+                  {teamNameStatus === 'idle' && !teamNameError && (
+                    <p className="text-xs text-gray-500 mt-1">Choose a unique name for your team and click &quot;Check&quot;</p>
+                  )}
+                  {teamNameStatus === 'idle' && teamNameError && (
+                    <p className="text-xs text-red-600 mt-1">{teamNameError}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="contactNumber">Contact Number *</Label>
