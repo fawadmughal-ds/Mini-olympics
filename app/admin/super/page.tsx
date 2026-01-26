@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { gamesPricing } from '@/lib/games-pricing';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +36,12 @@ import {
   UserCircle2,
 } from 'lucide-react';
 
+type GamePrice = {
+  name: string;
+  boys: number | null;
+  girls: number | null;
+};
+
 type SportGroup = {
   id: string;
   game_name: string;
@@ -57,6 +62,7 @@ export default function SuperAdminPage() {
   const [groups, setGroups] = useState<SportGroup[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [genderTab, setGenderTab] = useState<'boys' | 'girls'>('boys');
+  const [allGames, setAllGames] = useState<GamePrice[]>([]);
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<SportGroup | null>(null);
@@ -73,7 +79,20 @@ export default function SuperAdminPage() {
     isActive: true,
   });
 
+  const loadGames = async () => {
+    try {
+      const res = await fetch(`/api/games?t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setAllGames(data.data);
+      }
+    } catch (error) {
+      console.error('Load games error:', error);
+    }
+  };
+
   useEffect(() => {
+    loadGames();
     fetch('/api/admin/verify')
       .then((res) => res.json())
       .then((data) => {
@@ -197,7 +216,7 @@ export default function SuperAdminPage() {
 
   // Get games that don't have a group for the current gender tab
   const existingGamesForGender = currentGroups.map((g) => g.game_name);
-  const availableGames = gamesPricing.map((g) => g.name).filter((name) => !existingGamesForGender.includes(name));
+  const availableGames = allGames.map((g) => g.name).filter((name) => !existingGamesForGender.includes(name));
 
   const isSuperAdmin = userRole === 'super_admin';
 

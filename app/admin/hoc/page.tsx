@@ -31,8 +31,15 @@ import {
   FileText,
   Swords,
 } from 'lucide-react';
-import { gamesPricing } from '@/lib/games-pricing';
 import { jsPDF } from 'jspdf';
+
+type GamePrice = {
+  name: string;
+  boys: number | null;
+  girls: number | null;
+  boysPlayers?: number;
+  girlsPlayers?: number;
+};
 
 type Team = {
   team_name: string;
@@ -79,10 +86,24 @@ export default function HOCPage() {
   const [selectedGender, setSelectedGender] = useState<'boys' | 'girls'>('boys');
   const [customPrompt, setCustomPrompt] = useState('');
   const [generatedSchedule, setGeneratedSchedule] = useState<ScheduleData | null>(null);
+  const [availableGames, setAvailableGames] = useState<GamePrice[]>([]);
 
   useEffect(() => {
     loadData();
+    loadGames();
   }, []);
+
+  const loadGames = async () => {
+    try {
+      const res = await fetch(`/api/games?t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setAvailableGames(data.data);
+      }
+    } catch (error) {
+      console.error('Load games error:', error);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -374,7 +395,7 @@ export default function HOCPage() {
                     <SelectValue placeholder="Choose game" />
                   </SelectTrigger>
                   <SelectContent>
-                    {gamesPricing.map((game) => (
+                    {availableGames.map((game) => (
                       <SelectItem key={game.name} value={game.name}>{game.name}</SelectItem>
                     ))}
                   </SelectContent>

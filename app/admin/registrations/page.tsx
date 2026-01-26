@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { gamesPricing } from '@/lib/games-pricing';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,6 +73,12 @@ type Stats = {
   rejected: number;
 };
 
+type GamePrice = {
+  name: string;
+  boys: number | null;
+  girls: number | null;
+};
+
 export default function RegistrationsPage() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,9 +117,23 @@ export default function RegistrationsPage() {
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [phoneSearch, setPhoneSearch] = useState('');
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
+  const [allGames, setAllGames] = useState<GamePrice[]>([]);
+
+  const loadGames = async () => {
+    try {
+      const res = await fetch(`/api/games?t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setAllGames(data.data);
+      }
+    } catch (error) {
+      console.error('Load games error:', error);
+    }
+  };
 
   useEffect(() => {
     loadData();
+    loadGames();
   }, []);
 
   const loadData = () => {
@@ -397,7 +416,7 @@ export default function RegistrationsPage() {
                 <SelectTrigger><SelectValue placeholder="Game" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Games</SelectItem>
-                  {gamesPricing.map((game) => (
+                  {allGames.map((game) => (
                     <SelectItem key={game.name} value={game.name}>{game.name}</SelectItem>
                   ))}
                 </SelectContent>
