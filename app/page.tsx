@@ -10,6 +10,9 @@ export default function Home() {
   const teamSports = [
     { name: 'Cricket', icon: '🏏', color: 'from-emerald-500 to-green-600', players: '11v11' },
     { name: 'Football', icon: '⚽', color: 'from-green-500 to-teal-600', players: '11v11' },
+    { name: 'Hockey', icon: '🏑', color: 'from-blue-500 to-indigo-600', players: '11v11' },
+    { name: 'Kabaddi', icon: '🤼', color: 'from-orange-500 to-red-600', players: '7v7' },
+    { name: 'Swimming', icon: '🏊', color: 'from-cyan-500 to-blue-600' },
     { name: 'Tug of War', icon: '🪢', color: 'from-amber-500 to-orange-600', players: '10v10' },
     { name: 'Double Wicket', icon: '🏏', color: 'from-lime-500 to-green-600', players: '2v2' },
     { name: 'Pitho Gol Garam', icon: '🎯', color: 'from-rose-500 to-pink-600', players: '6v6' },
@@ -238,8 +241,8 @@ export default function Home() {
                 <div className="inline-flex p-4 bg-rose-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Award className="h-8 w-8 sm:h-10 sm:w-10 text-rose-400" />
                 </div>
-                <div className="text-3xl sm:text-6xl font-black mb-2 bg-gradient-to-r from-rose-300 to-pink-400 bg-clip-text text-transparent">₨50K+</div>
-                <div className="text-sm sm:text-lg text-slate-300">Prize Pool</div>
+                <div className="text-3xl sm:text-6xl font-black mb-2 bg-gradient-to-r from-rose-300 to-pink-400 bg-clip-text text-transparent">100+</div>
+                <div className="text-sm sm:text-lg text-slate-300">Teams Competing</div>
               </div>
             </div>
           </CardContent>
