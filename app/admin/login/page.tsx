@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { Medal, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { Medal, Lock, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -74,15 +74,16 @@ export default function AdminLoginPage() {
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-blue-100 text-sm font-medium">Username</Label>
+                <Label htmlFor="username" className="text-blue-100 text-sm font-medium">Email</Label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-300/50" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-300/50" />
                   <Input
                     id="username"
+                    type="email"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    placeholder="Enter your username"
+                    placeholder="Enter your email"
                     className="pl-11 h-12 bg-white/5 border-white/10 text-white placeholder:text-blue-200/40 focus:bg-white/10 focus:border-blue-400/50 transition-all"
                   />
                 </div>
