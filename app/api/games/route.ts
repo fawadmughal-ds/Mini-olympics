@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // GET - Fetch all games pricing (public - no auth needed)
 export async function GET(request: NextRequest) {
@@ -31,7 +32,13 @@ export async function GET(request: NextRequest) {
 
     const formattedGames = Object.values(gamesMap);
 
-    return NextResponse.json({ success: true, data: formattedGames });
+    const response = NextResponse.json({ success: true, data: formattedGames });
+    // Prevent caching
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
   } catch (error: any) {
     console.error('Fetch games error:', error);
     return NextResponse.json({ error: 'Failed to fetch games', details: error.message }, { status: 500 });

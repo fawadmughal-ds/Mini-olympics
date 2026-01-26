@@ -76,10 +76,19 @@ export default function RegisterPage() {
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const res = await fetch('/api/games', { cache: 'no-store' });
+        // Add timestamp to bust cache
+        const res = await fetch(`/api/games?t=${Date.now()}`, { 
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
         const data = await res.json();
-        if (data.success && data.data.length > 0) {
+        if (data.success && data.data && data.data.length > 0) {
           setAllGames(data.data);
+        } else {
+          console.log('No games in database, using defaults');
         }
       } catch (e) {
         console.error('Failed to load games, using defaults:', e);
