@@ -543,7 +543,7 @@ export default function RegisterPage() {
                   <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl mb-4">
                     <p className="text-sm text-yellow-900 font-semibold flex items-center gap-2">
                       <span className="text-xl">⚠️</span>
-                      <strong>OC esports</strong> matches will be held in OC on scheduled dates.
+                      Esports matches will be held in NC on scheduled dates.
                     </p>
                   </div>
                 )}
