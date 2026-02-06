@@ -28,7 +28,7 @@ npm run dev
 
 ### 4) DB helper scripts
 
-- **Unified script (recommended)**: `./scripts/db.sh`
+- **Unified script (recommended)**: `./scripts/db.sh` (Git Bash / Linux)
   - `./scripts/db.sh init`
   - `./scripts/db.sh migrate`
   - `./scripts/db.sh verify`
@@ -37,6 +37,9 @@ npm run dev
   - `./scripts/db.sh seed-admin` (creates default `admin` user if table is empty)
   - `./scripts/db.sh create-admin admin admin@fcit2025` (creates/updates a user)
   - `./scripts/db.sh reset-and-init --yes` (DESTRUCTIVE)
+
+- **Windows (no Git Bash)**: after setting `DATABASE_URL` in `env.local`, run:
+  - `node scripts/run-db-init.js` — runs init (requires `psql` in PATH, or use Git Bash for `./scripts/db.sh init` and `./scripts/db.sh migrate`)
 
 - **Legacy helpers**:
   - `./check-db.sh` (reads `DATABASE_URL` from `env.local` if not exported)

@@ -97,6 +97,13 @@ export default function Home() {
               <Flame className="h-5 w-5 text-white animate-pulse" />
               <span className="text-sm font-bold text-white uppercase tracking-widest">Mini Olympics 2026</span>
             </div>
+
+            <Link href="/register" className="block mb-6">
+              <div className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full shadow-xl shadow-emerald-500/30 border-2 border-white/20 hover:from-emerald-400 hover:to-green-500 transition-all">
+                <span className="text-base sm:text-lg font-bold text-white">🎉 Basant discount is live</span>
+                <span className="text-sm sm:text-base text-white/95">— Register now to avail upto 50% off</span>
+              </div>
+            </Link>
             
             <h1 className="text-4xl sm:text-6xl md:text-8xl font-black mb-6 text-white tracking-tight">
               <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 bg-clip-text text-transparent">FCIT</span>

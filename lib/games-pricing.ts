@@ -32,6 +32,131 @@ export const gamesPricing: GamePrice[] = [
   { name: 'Fifa', boys: 300, girls: 300 },
 ];
 
+/**
+ * Normalize game name for Basant discount lookup:
+ * lowercase, trim, single space, and treat singular/plural the same
+ * (e.g. "Darts Singles" and "Darts single" → "darts single", "FIFA" and "Fifa" → "fifa").
+ */
+function normalizeGameName(name: string): string {
+  let key = name.toLowerCase().trim().replace(/\s+/g, ' ');
+  key = key.replace(/\bsingles\b/g, 'single').replace(/\bdoubles\b/g, 'double');
+  return key;
+}
+
+/**
+ * Basant discount percentage (0–50) per game. One key per game; lookup uses
+ * normalized name (FIFA/Fifa, Darts Singles/Darts single, Table Tennis Doubles/Table tennis double all match).
+ */
+const BASANT_DISCOUNT_PERCENT: Record<string, number> = {
+  '100m race': 25,
+  '3 leg race': 30,
+  'archery': 50,
+  'arm wrestling': 30,
+  'badminton double': 15,
+  'badminton single': 15,
+  'basketball': 50,
+  'blur racing': 30,
+  'cod': 40,
+  'carrom double': 30,
+  'carrom single': 30,
+  'chess': 15,
+  'clash royale': 20,
+  'cricket': 20,
+  'darts single': 30,
+  'darts double': 30,
+  'egg relay race': 50,
+  'fifa': 20,
+  'football double': 40,
+  'football single': 40,
+  'frisbee': 50,
+  'gol gappay eating challenge': 15,
+  'handball': 50,
+  'hockey': 50,
+  'jenga': 20,
+  'kabaddi': 30,
+  'ludo double': 20,
+  'ludo single': 20,
+  'piano tiles': 30,
+  'plank': 20,
+  'pubg': 20,
+  'pucket': 30,
+  'relay race': 40,
+  'rifle shooting': 20,
+  'rope jump': 30,
+  "rubik's cube": 30,
+  'squid game': 15,
+  'swimming': 50,
+  'subway surfer': 30,
+  'table tennis double': 20,
+  'table tennis single': 20,
+  'tekken': 20,
+  'thula': 20,
+  'tug of war': 30,
+  'uno': 30,
+  'volley ball': 50,
+  '1v1 penalty': 30,
+};
+
+/**
+ * Returns Basant discount percentage (0–50) for a game, or 0 if no discount.
+ * Works with any game list (static or from API); lookup is by normalized name.
+ */
+export function getBasantDiscountPercent(gameName: string): number {
+  const key = normalizeGameName(gameName);
+  return BASANT_DISCOUNT_PERCENT[key] ?? 0;
+}
+
+/**
+ * Returns price after Basant discount for a game. Uses getGamePrice for base price.
+ * If no discount or no price, returns same as getGamePrice (or null).
+ */
+export function getGamePriceAfterDiscount(gameName: string, gender: 'boys' | 'girls'): number | null {
+  const base = getGamePrice(gameName, gender);
+  if (base === null) return null;
+  const pct = getBasantDiscountPercent(gameName);
+  if (pct <= 0) return base;
+  const discounted = Math.round(base * (1 - pct / 100));
+  return discounted;
+}
+
+export interface TotalWithDiscountBreakdown {
+  gameName: string;
+  actual: number;
+  discountPercent: number;
+  afterDiscount: number;
+}
+
+export interface TotalWithDiscountResult {
+  totalActual: number;
+  totalAfterDiscount: number;
+  breakdown: TotalWithDiscountBreakdown[];
+}
+
+/**
+ * Calculates total with per-game Basant discount. Use totalAfterDiscount as the amount to charge.
+ */
+export function calculateTotalWithDiscount(
+  selectedGames: string[],
+  gender: 'boys' | 'girls',
+  getGamePriceFn: (name: string, g: 'boys' | 'girls') => number | null = getGamePrice
+): TotalWithDiscountResult {
+  let totalActual = 0;
+  let totalAfterDiscount = 0;
+  const breakdown: TotalWithDiscountBreakdown[] = [];
+
+  selectedGames.forEach((gameName) => {
+    const actual = getGamePriceFn(gameName, gender);
+    if (actual === null) return;
+    const pct = getBasantDiscountPercent(gameName);
+    const afterDiscount = pct > 0 ? Math.round(actual * (1 - pct / 100)) : actual;
+    totalActual += actual;
+    totalAfterDiscount += afterDiscount;
+    breakdown.push({ gameName, actual, discountPercent: pct, afterDiscount });
+  });
+
+  return { totalActual, totalAfterDiscount, breakdown };
+}
+
 export function getGamePrice(gameName: string, gender: 'boys' | 'girls'): number | null {
   const game = gamesPricing.find((g) => g.name === gameName);
   if (!game) return null;
