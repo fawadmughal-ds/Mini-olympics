@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     if (!settings) {
       await sql`
         INSERT INTO esports_settings (id, is_open, announcement)
-        VALUES ('1', true, 'Esports matches will be held in OC on scheduled dates.')
+        VALUES ('1', true, 'Esports matches will be held in NC on scheduled dates.')
       `;
       result = await sql`SELECT * FROM esports_settings WHERE id = '1'`;
       settings = result[0] || null;

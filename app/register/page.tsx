@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { CheckCircle2, Circle, DollarSign, X, Copy, ExternalLink, Users, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
-import { gamesPricing as defaultGamesPricing, getAvailableGames as defaultGetAvailableGames, isTeamGame as defaultIsTeamGame, getRequiredPlayers as defaultGetRequiredPlayers } from '@/lib/games-pricing';
+import { gamesPricing as defaultGamesPricing, getAvailableGames as defaultGetAvailableGames, isTeamGame as defaultIsTeamGame, getRequiredPlayers as defaultGetRequiredPlayers, getBasantDiscountPercent, calculateTotalWithDiscount } from '@/lib/games-pricing';
 
 type TeamMember = {
   name: string;
@@ -120,6 +120,14 @@ export default function RegisterPage() {
     });
     return total;
   };
+
+  // Basant discount: total actual vs total after discount (user pays totalAfterDiscount)
+  const discountTotals = formData.gender && formData.selectedGames.length > 0
+    ? calculateTotalWithDiscount(formData.selectedGames, formData.gender, getGamePrice)
+    : null;
+  const totalAmount = discountTotals ? discountTotals.totalAfterDiscount : 0;
+  const totalActual = discountTotals ? discountTotals.totalActual : 0;
+  const hasDiscount = discountTotals != null && discountTotals.totalActual > discountTotals.totalAfterDiscount;
 
   const getRequiredPlayers = (gameName: string, gender: 'boys' | 'girls'): number | null => {
     const game = allGames.find((g) => g.name === gameName);
@@ -289,10 +297,6 @@ export default function RegisterPage() {
     reader.readAsDataURL(file);
   };
 
-  const totalAmount = formData.gender && formData.selectedGames.length > 0
-    ? calculateTotal(formData.selectedGames, formData.gender)
-    : 0;
-
   const handleSubmit = async () => {
     setLoading(true);
     try {
@@ -366,7 +370,9 @@ export default function RegisterPage() {
       return formData.selectedGames.length > 0;
     }
     if (step === 3) {
-      return formData.paymentMethod && (formData.paymentMethod === 'cash' || (formData.transactionId && formData.screenshotUrl));
+      // BASANT WEEKEND: Only online payment available - uncomment cash check on Monday
+      // Original: return formData.paymentMethod && (formData.paymentMethod === 'cash' || (formData.transactionId && formData.screenshotUrl));
+      return formData.paymentMethod === 'online' && formData.transactionId && formData.screenshotUrl;
     }
     return true;
   };
@@ -539,7 +545,7 @@ export default function RegisterPage() {
                   <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl mb-4">
                     <p className="text-sm text-yellow-900 font-semibold flex items-center gap-2">
                       <span className="text-xl">⚠️</span>
-                      <strong>OC esports</strong> matches will be held in OC on scheduled dates.
+                      Esports matches will be held in NC on scheduled dates.
                     </p>
                   </div>
                 )}
@@ -554,6 +560,8 @@ export default function RegisterPage() {
                         const price = formData.gender === 'boys' ? game.boys : game.girls;
                         const isSelected = formData.selectedGames.includes(game.name);
                         if (price === null) return null;
+                        const discountPct = getBasantDiscountPercent(game.name);
+                        const afterDiscount = discountPct > 0 ? Math.round(price * (1 - discountPct / 100)) : price;
 
                         return (
                           <div
@@ -569,7 +577,16 @@ export default function RegisterPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="font-semibold text-sm sm:text-base truncate">{game.name}</div>
                                 <div className="text-xs sm:text-sm text-gray-600">
-                                  Rs. {price.toLocaleString()}
+                                  {discountPct > 0 ? (
+                                    <>
+                                      <span className="line-through">Rs. {price.toLocaleString()}</span>
+                                      {' → '}
+                                      <span className="font-medium text-green-700">Rs. {afterDiscount.toLocaleString()}</span>
+                                      <span className="text-green-600"> ({discountPct}% off)</span>
+                                    </>
+                                  ) : (
+                                    <>Rs. {price.toLocaleString()}</>
+                                  )}
                                   {formData.gender === 'boys' && game.boysPlayers && ` (${game.boysPlayers} Players)`}
                                   {formData.gender === 'girls' && game.girlsPlayers && ` (${game.girlsPlayers} Players)`}
                                 </div>
@@ -643,14 +660,27 @@ export default function RegisterPage() {
 
                     {formData.selectedGames.length > 0 && (
                       <div className="mt-6 p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
                             <span className="font-semibold text-base sm:text-lg">Total Amount:</span>
                           </div>
-                          <span className="text-xl sm:text-2xl font-bold text-green-700">
-                            Rs. {totalAmount.toLocaleString()}
-                          </span>
+                          <div className="flex flex-col items-end gap-0.5">
+                            {hasDiscount ? (
+                              <>
+                                <span className="text-sm text-gray-600">
+                                  Actual: <span className="line-through">Rs. {totalActual.toLocaleString()}</span>
+                                </span>
+                                <span className="text-xl sm:text-2xl font-bold text-green-700">
+                                  After discount: Rs. {totalAmount.toLocaleString()}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-xl sm:text-2xl font-bold text-green-700">
+                                Rs. {totalAmount.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="mt-2 text-xs sm:text-sm text-gray-600">
                           {formData.selectedGames.length} game(s) selected
@@ -711,14 +741,37 @@ export default function RegisterPage() {
             {step === 3 && (
               <div className="space-y-4">
                 <div className="mb-4 p-3 sm:p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <span className="font-semibold text-sm sm:text-base">Total Amount:</span>
-                    <span className="text-xl sm:text-2xl font-bold text-blue-700">
-                      Rs. {totalAmount.toLocaleString()}
-                    </span>
+                    <div className="flex flex-col items-end gap-0.5">
+                      {hasDiscount ? (
+                        <>
+                          <span className="text-sm text-gray-600">
+                            Actual: <span className="line-through">Rs. {totalActual.toLocaleString()}</span>
+                          </span>
+                          <span className="text-xl sm:text-2xl font-bold text-blue-700">
+                            You pay: Rs. {totalAmount.toLocaleString()} (after discount)
+                          </span>
+                        </>
+                      ) : (
+                          <span className="text-xl sm:text-2xl font-bold text-blue-700">
+                            Rs. {totalAmount.toLocaleString()}
+                          </span>
+                        )}
+                    </div>
                   </div>
                 </div>
                 <Label>Payment Method *</Label>
+                {/* BASANT WEEKEND NOTICE - UNCOMMENT CASH PAYMENT ON MONDAY */}
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-3 mb-3">
+                  <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                    <span className="text-lg">🎉</span>
+                    <span>
+                      <strong>Basant Weekend:</strong> University is closed. Only online payment is available. Cash payment will resume on Monday.
+                    </span>
+                  </p>
+                </div>
+                {/* END BASANT NOTICE */}
                 <div className="space-y-4">
                   <div
                     className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
@@ -787,7 +840,8 @@ export default function RegisterPage() {
                           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <p className="text-xs sm:text-sm text-yellow-800">
                               <strong>Important:</strong> Please transfer the exact amount (
-                              <strong>Rs. {totalAmount.toLocaleString()}</strong>) to this account
+                              <strong>Rs. {totalAmount.toLocaleString()}</strong>
+                              {hasDiscount ? ' (discounted total)' : ''}) to this account
                               and keep the transaction receipt.
                             </p>
                           </div>
@@ -838,6 +892,11 @@ export default function RegisterPage() {
                     )}
                   </div>
 
+                  {/* ============================================================
+                      CASH PAYMENT OPTION - COMMENTED OUT FOR BASANT WEEKEND
+                      UNCOMMENT THIS BLOCK ON MONDAY TO RE-ENABLE CASH PAYMENT
+                      ============================================================ */}
+                  {/*
                   <div
                     className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all ${
                       formData.paymentMethod === 'cash'
@@ -868,6 +927,10 @@ export default function RegisterPage() {
                       </div>
                     )}
                   </div>
+                  */}
+                  {/* ============================================================
+                      END OF CASH PAYMENT BLOCK - UNCOMMENT ABOVE ON MONDAY
+                      ============================================================ */}
                 </div>
               </div>
             )}
@@ -939,11 +1002,43 @@ export default function RegisterPage() {
                     })}
                   </div>
                   <div className="border-t pt-3">
-                    <div className="flex justify-between items-center">
+                    {hasDiscount && discountTotals && discountTotals.breakdown.length > 0 && (
+                      <div className="mb-3 space-y-1">
+                        <p className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Per-game (actual → after discount)</p>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-700">
+                          {discountTotals.breakdown.map((row) => (
+                            row.discountPercent > 0 ? (
+                              <span key={row.gameName}>
+                                {row.gameName}: <span className="line-through">Rs. {row.actual.toLocaleString()}</span>
+                                {' → '}
+                                <span className="font-medium text-green-700">Rs. {row.afterDiscount.toLocaleString()}</span>
+                                ({row.discountPercent}%)
+                              </span>
+                            ) : (
+                              <span key={row.gameName}>{row.gameName}: Rs. {row.actual.toLocaleString()}</span>
+                            )
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
                       <p className="text-xs sm:text-sm text-gray-600">Total Amount</p>
-                      <p className="text-xl sm:text-2xl font-bold text-green-600">
-                        Rs. {totalAmount.toLocaleString()}
-                      </p>
+                      <div className="flex flex-col items-end gap-0.5">
+                        {hasDiscount ? (
+                          <>
+                            <span className="text-sm text-gray-600">
+                              Actual: <span className="line-through">Rs. {totalActual.toLocaleString()}</span>
+                            </span>
+                            <p className="text-xl sm:text-2xl font-bold text-green-600">
+                              You pay: Rs. {totalAmount.toLocaleString()} (after discount)
+                            </p>
+                          </>
+                        ) : (
+                            <p className="text-xl sm:text-2xl font-bold text-green-600">
+                              Rs. {totalAmount.toLocaleString()}
+                            </p>
+                          )}
+                      </div>
                     </div>
                   </div>
                   <div className="border-t pt-3">
