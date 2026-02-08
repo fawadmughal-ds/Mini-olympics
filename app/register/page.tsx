@@ -121,7 +121,7 @@ export default function RegisterPage() {
     return total;
   };
 
-  // Basant discount: total actual vs total after discount (user pays totalAfterDiscount)
+  // Flat 20% discount: total actual vs total after discount (user pays totalAfterDiscount)
   const discountTotals = formData.gender && formData.selectedGames.length > 0
     ? calculateTotalWithDiscount(formData.selectedGames, formData.gender, getGamePrice)
     : null;
@@ -370,9 +370,7 @@ export default function RegisterPage() {
       return formData.selectedGames.length > 0;
     }
     if (step === 3) {
-      // BASANT WEEKEND: Only online payment available - uncomment cash check on Monday
-      // Original: return formData.paymentMethod && (formData.paymentMethod === 'cash' || (formData.transactionId && formData.screenshotUrl));
-      return formData.paymentMethod === 'online' && formData.transactionId && formData.screenshotUrl;
+      return formData.paymentMethod && (formData.paymentMethod === 'cash' || (formData.transactionId && formData.screenshotUrl));
     }
     return true;
   };
@@ -762,16 +760,6 @@ export default function RegisterPage() {
                   </div>
                 </div>
                 <Label>Payment Method *</Label>
-                {/* BASANT WEEKEND NOTICE - UNCOMMENT CASH PAYMENT ON MONDAY */}
-                <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-3 mb-3">
-                  <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
-                    <span className="text-lg">🎉</span>
-                    <span>
-                      <strong>Basant Weekend:</strong> University is closed. Only online payment is available. Cash payment will resume on Monday.
-                    </span>
-                  </p>
-                </div>
-                {/* END BASANT NOTICE */}
                 <div className="space-y-4">
                   <div
                     className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
@@ -892,11 +880,6 @@ export default function RegisterPage() {
                     )}
                   </div>
 
-                  {/* ============================================================
-                      CASH PAYMENT OPTION - COMMENTED OUT FOR BASANT WEEKEND
-                      UNCOMMENT THIS BLOCK ON MONDAY TO RE-ENABLE CASH PAYMENT
-                      ============================================================ */}
-                  {/*
                   <div
                     className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all ${
                       formData.paymentMethod === 'cash'
@@ -927,10 +910,6 @@ export default function RegisterPage() {
                       </div>
                     )}
                   </div>
-                  */}
-                  {/* ============================================================
-                      END OF CASH PAYMENT BLOCK - UNCOMMENT ABOVE ON MONDAY
-                      ============================================================ */}
                 </div>
               </div>
             )}

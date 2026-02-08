@@ -100,8 +100,8 @@ export default function Home() {
 
             <Link href="/register" className="block mb-6">
               <div className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full shadow-xl shadow-emerald-500/30 border-2 border-white/20 hover:from-emerald-400 hover:to-green-500 transition-all">
-                <span className="text-base sm:text-lg font-bold text-white">🎉 Basant discount is live</span>
-                <span className="text-sm sm:text-base text-white/95">— Register now to avail upto 50% off</span>
+                <span className="text-base sm:text-lg font-bold text-white">🎉 Flat 20% off on all games</span>
+                <span className="text-sm sm:text-base text-white/95">— Register now to avail</span>
               </div>
             </Link>
             
