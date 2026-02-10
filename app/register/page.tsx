@@ -368,7 +368,9 @@ export default function RegisterPage() {
       return formData.selectedGames.length > 0;
     }
     if (step === 3) {
-      return formData.paymentMethod && (formData.paymentMethod === 'cash' || (formData.transactionId && formData.screenshotUrl));
+      // REGISTRATION CLOSED - No payment options available
+      // Original: return formData.paymentMethod && (formData.paymentMethod === 'cash' || (formData.transactionId && formData.screenshotUrl));
+      return false; // Registration is closed
     }
     return true;
   };
@@ -739,6 +741,25 @@ export default function RegisterPage() {
                     </span>
                   </div>
                 </div>
+                
+                {/* REGISTRATION CLOSED NOTICE */}
+                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6 text-center">
+                  <div className="text-4xl mb-4">🚫</div>
+                  <h3 className="text-xl font-bold text-red-700 mb-2">Registration Closed</h3>
+                  <p className="text-red-600 mb-4">
+                    Online and cash payments are currently not available.
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Please check back later or contact the FCIT Sports Society for more information.
+                  </p>
+                </div>
+                {/* END REGISTRATION CLOSED NOTICE */}
+
+                {/* ============================================================
+                    ALL PAYMENT OPTIONS COMMENTED OUT - REGISTRATION CLOSED
+                    UNCOMMENT BELOW TO RE-ENABLE PAYMENTS
+                    ============================================================ */}
+                {/*
                 <Label>Payment Method *</Label>
                 <div className="space-y-4">
                   <div
@@ -759,7 +780,6 @@ export default function RegisterPage() {
                     </div>
                     {formData.paymentMethod === 'online' && (
                       <div className="mt-4 space-y-4">
-                        {/* Bank Account Details */}
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-3 sm:p-4">
                           <h3 className="font-semibold text-base sm:text-lg mb-3 flex items-center gap-2">
                             <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
@@ -890,6 +910,10 @@ export default function RegisterPage() {
                     )}
                   </div>
                 </div>
+                */}
+                {/* ============================================================
+                    END OF PAYMENT OPTIONS - UNCOMMENT ABOVE TO RE-ENABLE
+                    ============================================================ */}
               </div>
             )}
 
