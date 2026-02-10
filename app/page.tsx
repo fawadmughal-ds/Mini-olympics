@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trophy, Users, Calendar, Shield, Zap, Award, ArrowRight, Medal, Flame, Star, Gamepad2, Target, Dumbbell } from 'lucide-react';
+import { Trophy, Users, Calendar, Shield, Zap, Award, ArrowRight, Medal, Flame, Star, Gamepad2, Target, Dumbbell, Percent, Sparkles } from 'lucide-react';
 
 export default function Home() {
   // All games with icons and colors
@@ -97,13 +97,6 @@ export default function Home() {
               <Flame className="h-5 w-5 text-white animate-pulse" />
               <span className="text-sm font-bold text-white uppercase tracking-widest">Mini Olympics 2026</span>
             </div>
-
-            <Link href="/register" className="block mb-6">
-              <div className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full shadow-xl shadow-emerald-500/30 border-2 border-white/20 hover:from-emerald-400 hover:to-green-500 transition-all">
-                <span className="text-base sm:text-lg font-bold text-white">🎉 Flat 20% off on all games</span>
-                <span className="text-sm sm:text-base text-white/95">— Register now to avail</span>
-              </div>
-            </Link>
             
             <h1 className="text-4xl sm:text-6xl md:text-8xl font-black mb-6 text-white tracking-tight">
               <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 bg-clip-text text-transparent">FCIT</span>
@@ -113,9 +106,36 @@ export default function Home() {
             <p className="text-xl sm:text-2xl md:text-3xl text-blue-200 mb-4 font-light">
               21+ Games • One Championship • Unlimited Glory
             </p>
-            <p className="text-sm sm:text-lg text-slate-400 mb-10 max-w-2xl mx-auto px-4">
+            <p className="text-sm sm:text-lg text-slate-400 mb-6 max-w-2xl mx-auto px-4">
               Join the most exciting sports competition in FCIT history. From Cricket to Chess, FIFA to Foosball - find your game and compete for glory!
             </p>
+
+            {/* Discount Banner */}
+            <Link href="/register" className="block mb-8 max-w-2xl mx-auto">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-teal-500/20 border-2 border-emerald-400/40 backdrop-blur-sm shadow-xl shadow-emerald-500/20 hover:from-emerald-500/30 hover:via-green-500/30 hover:to-teal-500/30 hover:border-emerald-400/60 hover:shadow-emerald-500/30 transition-all duration-300 group">
+                <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_0%,rgba(255,255,255,0.05)_50%,transparent_100%)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative px-5 sm:px-8 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 text-center sm:text-left">
+                  <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-500/30 border border-emerald-400/50 shrink-0">
+                    <Percent className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-300" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-base sm:text-lg font-bold text-white flex items-center justify-center sm:justify-start gap-1.5">
+                      <Sparkles className="h-4 w-4 text-amber-400 shrink-0" />
+                      Limited-time discounts
+                    </p>
+                    <p className="text-sm sm:text-base text-emerald-100/95">
+                      <span className="font-semibold text-emerald-200">30% off</span> on all games
+                      <span className="hidden sm:inline"> · </span>
+                      <span className="block sm:inline mt-0.5 sm:mt-0"><span className="font-semibold text-amber-200">50% off</span> on Swimming, Handball, Volleyball & Hockey</span>
+                    </p>
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium text-emerald-300/90 border border-emerald-400/50 rounded-full px-3 py-1.5 shrink-0">
+                    Register to avail →
+                  </span>
+                </div>
+              </div>
+            </Link>
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
               <Link href="/register">
                 <Button size="lg" className="w-full sm:w-auto text-lg px-10 py-7 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:from-amber-500 hover:via-orange-600 hover:to-rose-600 text-white shadow-2xl shadow-orange-500/40 font-bold rounded-2xl">

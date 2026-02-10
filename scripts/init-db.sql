@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
 
 -- Insert default esports settings
 INSERT INTO esports_settings (id, is_open, announcement)
-VALUES ('1', true, 'Esports matches will be held in NC on scheduled dates.')
+VALUES ('1', true, 'Esports matches will be held in OC on scheduled dates.')
 ON CONFLICT (id) DO NOTHING;
 
 -- Create indexes for better query performance

@@ -32,27 +32,50 @@ export const gamesPricing: GamePrice[] = [
   { name: 'Fifa', boys: 300, girls: 300 },
 ];
 
-/** Flat discount percentage applied to all games. */
-const FLAT_DISCOUNT_PERCENT = 20;
+/**
+ * Normalize game name for discount lookup: lowercase, trim, single space.
+ */
+function normalizeGameName(name: string): string {
+  return name.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+/** No discount (0%) – Gol Gappa Eating Challenge only. */
+const NO_DISCOUNT_KEYS = new Set([
+  'gol gappa eating challenge',
+  'gol gappay eating challenge',
+]);
+
+/** 50% discount – Swimming, Handball, Volleyball, Hockey. */
+const FIFTY_PERCENT_KEYS = new Set([
+  'swimming',
+  'handball',
+  'volleyball',
+  'volley ball',
+  'hockey',
+]);
 
 /**
- * Returns discount percentage for a game. All games get the same flat 20% off.
+ * Returns discount percentage for a game:
+ * - 0% for Gol Gappa Eating Challenge
+ * - 50% for Swimming, Handball, Volleyball, Hockey
+ * - 30% for all other games
  */
-export function getBasantDiscountPercent(gameName: string): number {
-  return FLAT_DISCOUNT_PERCENT;
+export function getDiscountPercent(gameName: string): number {
+  const key = normalizeGameName(gameName);
+  if (NO_DISCOUNT_KEYS.has(key)) return 0;
+  if (FIFTY_PERCENT_KEYS.has(key)) return 50;
+  return 30;
 }
 
 /**
- * Returns price after flat 20% discount for a game. Uses getGamePrice for base price.
- * If no price, returns null.
+ * Returns price after discount for a game. Uses getGamePrice for base price.
  */
 export function getGamePriceAfterDiscount(gameName: string, gender: 'boys' | 'girls'): number | null {
   const base = getGamePrice(gameName, gender);
   if (base === null) return null;
-  const pct = getBasantDiscountPercent(gameName);
+  const pct = getDiscountPercent(gameName);
   if (pct <= 0) return base;
-  const discounted = Math.round(base * (1 - pct / 100));
-  return discounted;
+  return Math.round(base * (1 - pct / 100));
 }
 
 export interface TotalWithDiscountBreakdown {
@@ -69,7 +92,7 @@ export interface TotalWithDiscountResult {
 }
 
 /**
- * Calculates total with flat 20% discount on all games. Use totalAfterDiscount as the amount to charge.
+ * Calculates total with per-game discount (0% / 30% / 50%). Use totalAfterDiscount as the amount to charge and for payment slip.
  */
 export function calculateTotalWithDiscount(
   selectedGames: string[],
@@ -83,7 +106,7 @@ export function calculateTotalWithDiscount(
   selectedGames.forEach((gameName) => {
     const actual = getGamePriceFn(gameName, gender);
     if (actual === null) return;
-    const pct = getBasantDiscountPercent(gameName);
+    const pct = getDiscountPercent(gameName);
     const afterDiscount = pct > 0 ? Math.round(actual * (1 - pct / 100)) : actual;
     totalActual += actual;
     totalAfterDiscount += afterDiscount;

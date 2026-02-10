@@ -124,7 +124,7 @@ export default function EsportsSettingsPage() {
                 id="announcement"
                 value={announcement}
                 onChange={(e) => setAnnouncement(e.target.value)}
-                placeholder="Esports matches will be held in NC on scheduled dates."
+                placeholder="Esports matches will be held in OC on scheduled dates."
               />
               <p className="text-sm text-gray-500 mt-1">
                 This message will be displayed to users

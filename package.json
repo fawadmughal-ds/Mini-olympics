@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev.js",
-    "build": "node scripts/load-env.js next build",
-    "start": "node scripts/load-env.js next start",
+    "dev": "sh -c 'set -a; [ -f ./env.local ] && . ./env.local; [ -f ./.env.local ] && . ./.env.local; set +a; next dev'",
+    "build": "sh -c 'set -a; [ -f ./env.local ] && . ./env.local; [ -f ./.env.local ] && . ./.env.local; set +a; next build'",
+    "start": "sh -c 'set -a; [ -f ./env.local ] && . ./env.local; [ -f ./.env.local ] && . ./.env.local; set +a; next start'",
     "lint": "next lint"
   },
   "dependencies": {
